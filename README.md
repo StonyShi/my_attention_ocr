@@ -2,7 +2,7 @@
 
 *A TensorFlow model for real-world image text extraction problems.*
 
-拷贝来源[tensorflow models](https://github.com/tensorflow/models/blob/master/research/attention_ocr)
+源代码[tensorflow models](https://github.com/tensorflow/models/blob/master/research/attention_ocr)
 
 Attention OCR model 使用 [FSNS dataset][FSNS] 数据训练的模型。
 你也可以使用自己的数据集
@@ -46,9 +46,9 @@ python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=10000
  my_data.py
 ```
 
-5. 训练(使用Inception权重):
+5. 训练:
 ```
- train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
+ train.py --dataset_name=my_data
 ```
 
 6. Inception下载地址:
@@ -56,6 +56,11 @@ python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=10000
 ```
 wget http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz
 tar xf inception_v3_2016_08_28.tar.gz
+mv inception_v3.ckpt resource/inception_v3.ckpt
+```
+#### .1. 使用Inception_v3权重训练:
+```
+ train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
 ```
 
 6. 使用Attention OCR model权重训练:
@@ -63,6 +68,19 @@ tar xf inception_v3_2016_08_28.tar.gz
 ```
 wget http://download.tensorflow.org/models/attention_ocr_2017_08_09.tar.gz
 tar xf attention_ocr_2017_08_09.tar.gz
-python train.py --checkpoint=model.ckpt-399731 --dataset_name=my_data
+python train.py --checkpoint=../attention_ocr_2017_08_09/model.ckpt-399731 --dataset_name=my_data
 ```
 
+7. 使用Attention OCR model权重训练:
+
+```
+tensorboard  --logdir=logs
+```
+
+
+8. 验证：
+```
+python eval.py --dataset_name=my_data --split_name=test
+
+tensorboard  --logdir=eval_logs --port=6016
+```

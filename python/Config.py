@@ -160,13 +160,14 @@ class Config(object):
         return ''.join([self.get_index_char(x) for x in ids if (0 < x < self.NUM_CLASSES)])
 
     def is_valid_char(self, char):
+        charset = self.charset
         if len(char) > 1:
-            for c in list(char):
-                if self.get_char_index(c) is None:
+            for c in char:
+                if c not in charset:
                     return True
             return False
         else:
-            return self.get_char_index(char) is None
+            return char in charset
 
     def decode_dense_code(self, dense_code):
         return [self.ids_to_text(code) for code in dense_code]
@@ -338,8 +339,7 @@ class GenImage(object):
         else:
             wds = self.charset
         letter = self.get_letter(wds)
-        letter_str = ''.join(letter).strip()
-        while self.is_valid_char2(letter_str, self.charset):
+        while self.is_valid_char2((''.join(letter).strip()), self.charset):
             letter = self.get_letter(wds)
         img = self._gen_image(letter, bg_img, text_color)
         letter = ''.join(letter).strip()

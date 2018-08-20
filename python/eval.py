@@ -33,7 +33,7 @@ common_flags.define()
 flags.DEFINE_integer('num_batches', 100,
                      'Number of batches to run eval for.')
 
-flags.DEFINE_string('eval_log_dir', '/tmp/attention_ocr/eval',
+flags.DEFINE_string('eval_log_dir', 'eval_logs',
                     'Directory where the evaluation results are saved to.')
 
 flags.DEFINE_integer('eval_interval_secs', 60,
@@ -62,7 +62,9 @@ def main(_):
   eval_ops = model.create_summaries(
       data, endpoints, dataset.charset, is_training=False)
   slim.get_or_create_global_step()
-  session_config = tf.ConfigProto(device_count={"GPU": 0})
+  #session_config = tf.ConfigProto(device_count={"GPU": 0})
+  session_config = tf.ConfigProto(allow_soft_placement=True)
+  session_config.gpu_options.per_process_gpu_memory_fraction = 0.75
   slim.evaluation.evaluation_loop(
       master=FLAGS.master,
       checkpoint_dir=FLAGS.train_log_dir,

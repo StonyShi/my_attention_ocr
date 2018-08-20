@@ -534,10 +534,11 @@ class Model(object):
                    streaming=True,
                    rej_char=self._params.null_code))
 
-      for name, value in names_to_values.iteritems():
+      for name, value in names_to_values.items():
         summary_name = 'eval/' + name
         tf.summary.scalar(summary_name, tf.Print(value, [value], summary_name))
-      return names_to_updates.values()
+      #return names_to_updates.values()
+      return list(names_to_updates.values())
 
   def create_init_fn_to_restore(self, master_checkpoint,
                                 inception_checkpoint=None):

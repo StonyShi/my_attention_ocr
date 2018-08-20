@@ -5,6 +5,16 @@
 
 cd python
 
+#生成固定文本
+python gen_address.py
+python gen_ids.py
+python gen_name.py
+python gen_plate.py
+
+ls *_list.txt
+
+cat *_list.txt > all_list.txt
+
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
 python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 20000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out2
@@ -22,4 +32,4 @@ python gen_record.py --dataset_name=validation --dataset_dir=out3 --dataset_nums
 
 python train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
 
-
+python eval.py --dataset_name=my_data --split_name=test

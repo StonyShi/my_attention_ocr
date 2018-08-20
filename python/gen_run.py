@@ -298,15 +298,15 @@ def create_strings_from_wikipedia(minimum_length, count, lang, max_length=200):
         sentences.extend(__lines)
 
     return sentences
-def create_strings_from_file(filename, max_len):
+def create_strings_from_file(filename):
     strings = []
     with open(filename, 'r', encoding="utf8") as f:
-        lines = [l.strip()[0:max_len] for l in f.readlines()]
+        lines = [l.strip()[:] for l in f.readlines()]
         strings = lines
     return strings
-##  python gen_run.py -t 3 -fs 28 -new_h 32 -new_w 320 -w 2 -c 2000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
+##python gen_run.py -t 3 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
 ##python gen_run.py  -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200 -news -mxw 18 -miw 15 -l cn -e png -aug --output_dir out
-##python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 10000 -news -mxw 18 -miw 15 -l cn -e png --output_dir out2
+##python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100 -news -mxw 18 -miw 15 -l cn -e png --output_dir out2
 if __name__ == '__main__':
 
     # Argument parsing
@@ -346,7 +346,7 @@ if __name__ == '__main__':
     if args.use_wikipedia:
         words = create_strings_from_wikipedia(args.length, count*2, language, max_length=max_length)
     elif args.input_file != '':
-        words = create_strings_from_file(args.input_file, max_length+min_length)
+        words = create_strings_from_file(args.input_file)
     else:
         words = create_strings_from_new(args.length, count*2, language, max_length=max_length)
 
