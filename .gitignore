@@ -1,0 +1,39 @@
+# mkdocs documentation
+/site
+.idea
+.idea/*
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# pyenv
+.python-version
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyBuilder
+target/
+
+# Distribution / packaging
+.Python
+build/
+
+__pycache__/
+python/__pycache__/
+*/__pycache__/
+.idea
+
+python/datasets/data/*.tfrecords*
+*/*.tfrecords*
+python/resource/inception_v3.ckpt
+python/resource/*.ckpt
+*/*.ckpt*
+
+python/testdata2/*
