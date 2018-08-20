@@ -14,15 +14,15 @@ DEFAULT_CONFIG = {
     'name': 'my_data',
     'splits': {
         'train': {
-            'size': 400000,
+            'size': 430000,
             'pattern': 'train/train*'
         },
         'test': {
-            'size': 20000,
+            'size': 24000,
             'pattern': 'test/test*'
         },
         'validation': {
-            'size': 20000,
+            'size': 22000,
             'pattern': 'validation/validation*'
         }
     },

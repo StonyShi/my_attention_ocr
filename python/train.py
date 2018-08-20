@@ -76,6 +76,9 @@ flags.DEFINE_boolean('reset_train_dir', False,
 
 flags.DEFINE_boolean('show_graph_stats', False,
                      'Output model size stats to stderr.')
+
+flags.DEFINE_float('pre_gpu_mem', 0.85,
+                   'per_process_gpu_memory_fraction')
 # yapf: enable
 
 TrainingHParams = collections.namedtuple('TrainingHParams', [
@@ -137,7 +140,7 @@ def train(loss, init_fn, hparams):
         startup_delay_steps = 0
         sync_optimizer = None
     tf_config = tf.ConfigProto(allow_soft_placement=True)
-    tf_config.gpu_options.per_process_gpu_memory_fraction = 0.75
+    tf_config.gpu_options.per_process_gpu_memory_fraction = FLAGS.pre_gpu_mem
     train_op = slim.learning.create_train_op(
         loss,
         optimizer,

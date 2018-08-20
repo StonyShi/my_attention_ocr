@@ -143,15 +143,14 @@ def make_tfrecord(dict_chinese, dataset_name, nums):
 
     image_tupe = get_image_files(FLAGS.dataset_dir)
 
-    print('count:{} images in dir:{}, nums:{}'.format(len(image_tupe), FLAGS.dataset_dir, nums))
+    average_samples = len(image_tupe) // nums
+    print('count:{} images in dir:{}, nums:{}, avg:{}'.format(len(image_tupe), FLAGS.dataset_dir, nums, average_samples))
 
     # 图片resize的高和宽
     split_results = FLAGS.height_and_width.split(',')
     height = int(split_results[0].strip())
     width = int(split_results[1].strip())
 
-    # 将数据平均分到 num_tfrecord_files 个tfrecords文件中来写入
-    average_samples = len(image_tupe) // nums
 
     def get_tfrecord_writer(start, end):
         filename = os.path.join(FLAGS.output_dir, dataset_name + '.tfrecords-%.5d-of-%.5d' %(start, end))
@@ -266,19 +265,6 @@ def parse_tfrecord_file():
         coord.join(threads)
 
 def write_dict():
-    def get_gb2312():
-        cs = []
-        # 第一字节0xB0-0xF7（对应区号：16－87
-        # 第二个字节0xA1-0xFE（对应位号：01－94）
-        for head in range(0xb0, 0xf7):
-            for body in range(0xa1, 0xfe):
-                val = f'{head:x}{body:x}'
-                try:
-                    cs.append(bytes.fromhex(val).decode('gb2312'))
-                except UnicodeDecodeError:
-                    pass
-        return cs
-
     cs = open("resource/gb2312_list.txt", 'r').read()
     index = 134
     with open("resource/new_dic2.txt", 'a') as f:
@@ -296,12 +282,9 @@ if __name__ == '__main__':
     # words = open("resource/gb2312_list.txt", 'r').read()
     # print(words)
 
-    parse_tfrecord_file()
+    #parse_tfrecord_file()
     #
     # import datasets
 
     # print(getattr(datasets, "my_data"))
     pass
-
-
-

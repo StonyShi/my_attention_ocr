@@ -16,20 +16,37 @@ ls *_list.txt
 cat *_list.txt > all_list.txt
 
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
-python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
-python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 20000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out2
-python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 20000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out3
+python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100000 -news -mxw 18 -miw 15 -l en -e png -aug  --output_dir out
+python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100000 -news -mxw 18 -miw 15 -l cn -e png -aug -i all_list.txt --output_dir out
+python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 10000 -wk -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
+
+python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 24000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out2
+python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 22000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out3
 
 
 
 python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=10000 --output_dir=datasets/train
 
-python gen_record.py --dataset_name=test --dataset_dir=out2 --dataset_nums=20000 --output_dir=datasets/test
+python gen_record.py --dataset_name=test --dataset_dir=out2 --dataset_nums=24000 --output_dir=datasets/test
 
 
-python gen_record.py --dataset_name=validation --dataset_dir=out3 --dataset_nums=20000 --output_dir=datasets/validation
+python gen_record.py --dataset_name=validation --dataset_dir=out3 --dataset_nums=22000 --output_dir=datasets/validation
 
 
-python train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
+
+var=`ls out |wc -l`
+sed -i 's/430000/'"$var"'/g' datasets/my_data.py
+
+var=`ls out2 |wc -l`
+sed -i 's/24000/'"$var"'/g' datasets/my_data.py
+
+var=`ls out3 |wc -l`
+sed -i 's/22000/'"$var"'/g' datasets/my_data.py
+
+
+python train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data > output.log 2>&1 &
+
+##python train.py --checkpoint=../attention_ocr_2017_08_09/model.ckpt-399731 --dataset_name=my_data > output.log2 2>&1 &
+
 
 python eval.py --dataset_name=my_data --split_name=test

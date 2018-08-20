@@ -194,31 +194,33 @@ def parse_arguments():
 
 def create_strings_from_new(minimum_length, count, lang, max_length=200):
     sentences = []
-    url = "http://news.baidu.com/ns?word=%E6%96%B0%E9%97%BB&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"
-    if lang == 'en':
-        if random.random() > 0.5:
-            if random.random() > 0.5:
-                url = "http://www.globaltimes.cn/life/food/index{}.html#list"
-            else:
-                url = "http://www.globaltimes.cn/beijing/index{}.html#list"
-        else:
-            if random.random() > 0.5:
-                url = "http://www.globaltimes.cn/china/profile/index{}.html#list"
-            else:
-                url = "http://www.globaltimes.cn/china/society/index{}.html#list"
+    cn_list = [
+        "http://news.baidu.com/ns?word=%E4%BB%8A%E6%97%A5%E5%A4%B4%E6%9D%A1&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"
+        , "http://news.baidu.com/ns?word=%E6%96%B0%E9%97%BB&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"]
+    en_list = ["https://www.newsweek.com/search/site/news?page={}"
+        , "https://www.newsweek.com/search/site/word?page={}"
+        , "http://www.globaltimes.cn/life/food/index{}.html#list"
+        , "http://www.globaltimes.cn/beijing/index{}.html#list"
+        , "http://www.globaltimes.cn/china/profile/index{}.html#list"
+        , "http://www.globaltimes.cn/china/society/index{}.html#list"]
+
+    def get_url(index):
+        if lang == 'cn':
+            url = random.choice(cn_list)
+        if lang == 'en':
+            url = random.choice(en_list)
+        return url.format(index)
     index = 2
     if lang == 'cn':
         index = 10
     while len(sentences) < count:
         # We fetch a random page
-        page = requests.get(url.format(index))
+        page = requests.get(get_url(index))
         if lang == 'cn':
             index = index + 10
         else:
             index = index + 1
-
         soup = BeautifulSoup(page.text, 'html.parser')
-
         for script in soup(["script", "style"]):
             script.extract()
 

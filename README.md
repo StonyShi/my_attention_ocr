@@ -60,7 +60,7 @@ mv inception_v3.ckpt resource/inception_v3.ckpt
 ```
 #### .1. 使用Inception_v3权重训练:
 ```
- train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
+ python train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data > output.log 2>&1 &
 ```
 
 6. 使用Attention OCR model权重训练:
@@ -68,10 +68,10 @@ mv inception_v3.ckpt resource/inception_v3.ckpt
 ```
 wget http://download.tensorflow.org/models/attention_ocr_2017_08_09.tar.gz
 tar xf attention_ocr_2017_08_09.tar.gz
-python train.py --checkpoint=../attention_ocr_2017_08_09/model.ckpt-399731 --dataset_name=my_data
+python train.py --checkpoint=../attention_ocr_2017_08_09/model.ckpt-399731 --train_log_dir=my_logs --dataset_name=my_data
 ```
 
-7. 使用Attention OCR model权重训练:
+7. 可视化:
 
 ```
 tensorboard  --logdir=logs
@@ -84,3 +84,6 @@ python eval.py --dataset_name=my_data --split_name=test
 
 tensorboard  --logdir=eval_logs --port=6016
 ```
+
+
+### train.sh 有完整的训练步骤
