@@ -15,6 +15,7 @@ ls *_list.txt
 
 cat *_list.txt > all_list.txt
 
+#-redata datasets/data
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200000 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100000 -news -mxw 18 -miw 15 -l en -e png -aug  --output_dir out
 python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100000 -news -mxw 18 -miw 15 -l cn -e png -aug -i all_list.txt --output_dir out

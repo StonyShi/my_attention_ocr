@@ -15,6 +15,7 @@ import requests
 from bs4 import BeautifulSoup
 import jieba
 import argparse
+import pickle
 
 def parse_arguments():
     """
@@ -140,7 +141,7 @@ def parse_arguments():
         type=str,
         nargs="?",
         help="Define the extension to save the image with",
-        default="jpg",
+        default="png",
     )
 
     parser.add_argument(
@@ -157,7 +158,14 @@ def parse_arguments():
         help="Use Wikipedia as the source text for the generation, using this paremeter ignores -r, -n, -s",
         default=True,
     )
-
+    parser.add_argument(
+        "-redata",
+        "--store_data",
+        nargs="?",
+        type=str,
+        help="load wiki or news data",
+        default="",
+    )
     parser.add_argument(
         "-new_w",
         "--new_width",
@@ -250,6 +258,10 @@ def create_strings_from_new(minimum_length, count, lang, max_length=200):
             else:
                 __lines.append(line)
         # Remove the last lines that talks about contributing
+        __lines = list(filter(
+            lambda s: len(s.strip()) > 1,
+            __lines
+        ))
         sentences.extend(__lines)
     return sentences
 
@@ -297,6 +309,10 @@ def create_strings_from_wikipedia(minimum_length, count, lang, max_length=200):
                 __lines.append(line)
         # Remove the last lines that talks about contributing
         #sentences.extend(lines[0:max([1, len(lines) - 5])])
+        __lines = list(filter(
+            lambda s: len(s.strip()) > 1,
+            __lines
+        ))
         sentences.extend(__lines)
 
     return sentences
@@ -306,6 +322,23 @@ def create_strings_from_file(filename):
         lines = [l.strip()[:] for l in f.readlines()]
         strings = lines
     return strings
+def load_store_data(type, data_dir):
+    def get_data(path):
+        with open(path, 'rb') as file:
+            return pickle.load(file)
+    words = []
+    for f in os.listdir(data_dir):
+        if not f.endswith('.pickle'):
+            continue
+        if not f.startswith(type):
+            continue
+        word = get_data(os.path.join(data_dir, f))
+        if word is not None:
+            words.extend(word)
+    return words
+
+
+
 ##python gen_run.py -t 3 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200 -news -mxw 18 -miw 15 -l cn -e png -aug  --output_dir out
 ##python gen_run.py  -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 200 -news -mxw 18 -miw 15 -l cn -e png -aug --output_dir out
 ##python gen_run.py -t 5 -fs 28 -new_h 32 -new_w 320 -w 2 -c 100 -news -mxw 18 -miw 15 -l cn -e png --output_dir out2
@@ -346,11 +379,17 @@ if __name__ == '__main__':
     print(gen_img.fonts)
 
     if args.use_wikipedia:
-        words = create_strings_from_wikipedia(args.length, count*2, language, max_length=max_length)
+        if args.store_data != '':
+            words = load_store_data("wiki", args.store_data)
+        else:
+            words = create_strings_from_wikipedia(args.length, count*2, language, max_length=max_length)
     elif args.input_file != '':
         words = create_strings_from_file(args.input_file)
     else:
-        words = create_strings_from_new(args.length, count*2, language, max_length=max_length)
+        if args.store_data != '':
+            words = load_store_data("news", args.store_data)
+        else:
+            words = create_strings_from_new(args.length, count*2, language, max_length=max_length)
 
     bg_list = gen_img.get_img_file(bg_dir)
     bg_list.append(None)

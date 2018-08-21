@@ -1,8 +1,6 @@
-pip install numpy==1.14.1
-pip install h5py==2.8.0
-pip install tensorflow==1.7.0
-pip install pandas==0.22
+pip install msgpack
 pip install tensorflow-gpu==1.7.0
+pip install pandas==0.22
 pip install easydict
 pip install keras
 pip install opencv-python
@@ -12,3 +10,4 @@ pip install requests
 pip install Pillow
 pip install jieba
 pip install matplotlib
+pip install numpy==1.14.1

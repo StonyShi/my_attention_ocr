@@ -7,4 +7,6 @@ python -m ipykernel install --user --name test --display-name "test"
 
 
 
-pip install -f requirements.txt
+#pip install -r requirements.txt
+
+while read line ; do $line; done < requirements.txt

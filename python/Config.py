@@ -21,7 +21,7 @@ def gen_crop_bg(im, size, out_dir, width, height):
         box = [xOffset, yOffset, (x+xOffset), (y+yOffset)]
         ii = im.crop(box=box) # x0,y0,x1,y1 (left, upper, right, lower)
         #print(ii.size)
-        img_filename = '{:05}_{:02}.jpg'.format(i, random.randrange(10, 90))
+        img_filename = '{:05}_{:02}_{:07}.jpg'.format(i, random.randrange(2, 99), int(time.time()*100000 - 153483253200000))
         ii.save(os.path.join(out_dir, img_filename))
 
 def gen_letter_json(out_name):
@@ -107,7 +107,7 @@ class Config(object):
             # gb2312_name = get_gb2312_file()
             # chinese_word = open(gb2312_name, 'r').read()
             # charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-'.!?, " + chinese_word
-            charset = words
+            charset = ''.join(words)
         self.__doInit__(charset)
 
     def __doInit__(self, charset):

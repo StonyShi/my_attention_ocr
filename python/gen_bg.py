@@ -1,5 +1,7 @@
 from Config import gen_crop_bg
 import os
+
+
 if __name__ == '__main__':
     import PIL.Image as Image
 
