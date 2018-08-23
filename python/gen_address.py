@@ -3998,23 +3998,43 @@ areas = {
 
 if __name__ == '__main__':
     f = open('address_list.txt', mode='w')
-    f.write("性别 女\n")
-    f.write("性别 男\n")
-    f.write("民族 汉\n")
-    f.write("民族 回\n")
-    f.write("民族 蒙古\n")
-    f.write("民族 蒙\n")
-    f.write("民族 白\n")
-    f.write("民族 壮\n")
-    f.write("民族 满\n")
-    f.write("民族 苗\n")
-    f.write("民族 维吾尔\n")
-    f.write("民族 土家\n")
+    for i in range(10):
+        f.write("性别 女\n")
+        f.write("性别 男\n")
+        f.write("性 别 女\n")
+        f.write("性 别 男\n")
+        f.write("民族 汉\n")
+        f.write("民族 回\n")
+        f.write("民族 蒙古\n")
+        f.write("民族 蒙\n")
+        f.write("民族 白\n")
+        f.write("民族 壮\n")
+        f.write("民族 满\n")
+        f.write("民族 苗\n")
+        f.write("民族 维吾尔\n")
+        f.write("民族 土家\n")
+
+        f.write("民 族 汉\n")
+        f.write("民 族 回\n")
+        f.write("民 族 蒙古\n")
+        f.write("民 族 蒙\n")
+        f.write("民 族 白\n")
+        f.write("民 族 壮\n")
+        f.write("民 族 满\n")
+        f.write("民 族 苗\n")
+        f.write("民 族 维吾尔\n")
+        f.write("民 族 土家\n")
+    for i in range(10):
+        f.write("中华人民共和国机动车行驶证\n")
+        f.write("中华人民共和国机动车驾驶证\n")
     for p in provinces.keys():
         pro = provinces[p]
         pcitys = citys[p]
         for c in pcitys.keys():
             careas = areas[c]
             for a in careas.keys():
+                f.write("%s%s公安局交通警察总队\n" % (provinces[p], pcitys[c]))
+                f.write("%s%s公安局交通警察支队\n" % (provinces[p], pcitys[c]))
                 f.write("住址 %s%s%s\n" % (provinces[p], pcitys[c], careas[a]))
+                #f.write("住址 %s%s%s\n" % (provinces[p], pcitys[c], careas[a]))
                 #print("住址 %s%s%s" % (provinces[p], pcitys[c], careas[a]))

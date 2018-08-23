@@ -8,11 +8,11 @@ import pickle
 
 from bs4 import BeautifulSoup
 
-def create_strings_from_new(minimum_length, count, lang, max_length=200):
+def create_strings_from_new(minimum_length, count, lang, max_length=20, word="新闻"):
     sentences = []
     cn_list = [
-        "http://news.baidu.com/ns?word=%E4%BB%8A%E6%97%A5%E5%A4%B4%E6%9D%A1&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"
-        , "http://news.baidu.com/ns?word=%E6%96%B0%E9%97%BB&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"]
+        "http://news.baidu.com/ns?word=" + word + "&pn={}&cl=2&ct=1&tn=news&rn=20&ie=utf-8&bt=0&et=0"
+    ]
     en_list = ["https://www.newsweek.com/search/site/news?page={}"
         , "https://www.newsweek.com/search/site/word?page={}"
         , "http://www.globaltimes.cn/life/food/index{}.html#list"
@@ -56,24 +56,29 @@ def create_strings_from_new(minimum_length, count, lang, max_length=200):
         ))
         __lines = []
         for line in lines:
-            if(len(line)) > max_length:
-                if lang == 'cn':
-                    seg_list = jieba.cut(line, cut_all=False)
-                    __lines.extend(seg_list)
-                else:
-                    seg_list = line.split(' ')
-                    __lines.extend(seg_list)
+            if(len(line)) > max_length*2:
+                for i in range(0, len(line), max_length):
+                    start = i
+                    end = i + max_length
+                    strs = (line[start:end]).strip()
+                    __lines.append(strs)
+                # if lang == 'cn':
+                #     seg_list = jieba.cut(line, cut_all=False)
+                #     __lines.extend(seg_list)
+                # else:
+                #     seg_list = line.split(' ')
+                #     __lines.extend(seg_list)
             else:
                 __lines.append(line)
         # Remove the last lines that talks about contributing
         __lines = list(filter(
-            lambda s: len(s.strip()) > 1,
+            lambda s: len(s.strip()) > 2,
             __lines
         ))
         sentences.extend(__lines)
     return sentences
 
-def create_strings_from_wikipedia(minimum_length, count, lang, max_length=200):
+def create_strings_from_wikipedia(minimum_length, count, lang, max_length=20):
     """
         Create all string by randomly picking Wikipedia articles and taking sentences from them.
     """
@@ -106,30 +111,45 @@ def create_strings_from_wikipedia(minimum_length, count, lang, max_length=200):
         ))
         __lines = []
         for line in lines:
-            if (len(line)) > max_length:
-                if lang == 'cn':
-                    seg_list = jieba.cut(line, cut_all=False)
-                    __lines.extend(seg_list)
-                else:
-                    seg_list = line.split(' ')
-                    __lines.extend(seg_list)
+            if (len(line)) > max_length*2:
+                for i in range(0, len(line), max_length):
+                    start = i
+                    end = i + max_length
+                    strs = (line[start:end]).strip()
+                    __lines.append(strs)
+                # if lang == 'cn':
+                #     seg_list = jieba.cut(line, cut_all=False)
+                #     __lines.extend(seg_list)
+                # else:
+                #     seg_list = line.split(' ')
+                #     __lines.extend(seg_list)
             else:
                 __lines.append(line)
         # Remove the last lines that talks about contributing
         #sentences.extend(lines[0:max([1, len(lines) - 5])])
         __lines = list(filter(
-            lambda s: len(s.strip()) > 1,
+            lambda s: len(s.strip()) > 2,
             __lines
         ))
         sentences.extend(__lines)
 
     return sentences
 
-def create_strings_from_file(filename):
+def create_strings_from_file(filename, max_length):
+
+    parentdir = (os.path.abspath(__file__))
+    for i in range(3):
+        if os.path.exists(filename):
+            break
+        if not os.path.exists(filename):
+            parentdir = os.path.dirname(parentdir)
+            filename = os.path.join(parentdir, filename)
+
     strings = []
     with open(filename, 'r', encoding="utf8") as f:
         lines = [l.strip()[:] for l in f.readlines()]
         strings = lines
+    #print("strings: ", strings)
     return strings
 
 def load_store_data(type, data_dir):

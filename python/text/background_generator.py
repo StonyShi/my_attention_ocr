@@ -56,7 +56,7 @@ class BackgroundGenerator(object):
         return image
 
     @classmethod
-    def picture(cls, height, width, bg_dir="../resource/bgimg/images"):
+    def picture(cls, height, width, bg_dir="../resource/bgimg/images2"):
         """
             Create a background with a picture
         """

@@ -41,7 +41,7 @@ def parse_arguments():
         type=str,
         nargs="?",
         help="The output directory",
-        default="resource/bgimg/images",
+        default="resource/bgimg",
     )
     parser.add_argument(
         "-i",
@@ -310,6 +310,7 @@ def main():
     extension = args.extension
     font_dir = args.font_dir
 
+    print("gen_img_dir >>> size: %d, dir: %s" % (count, output_dir))
 
     # Create font (path) list
     fonts = get_font_file(font_dir)
@@ -323,23 +324,28 @@ def main():
         else:
             words = create_strings_from_wikipedia(args.length, count * 2, language, max_length=max_length)
     elif args.input_file != '':
-        words = create_strings_from_file(args.input_file)
+        words = create_strings_from_file(args.input_file,max_length)
     else:
         if args.store_data != '':
             words = load_store_data("news", args.store_data)
         else:
             words = create_strings_from_new(args.length, count * 2, language, max_length=max_length)
 
-    genLetter = GenLetter(min_length, max_length)
+    gen_letter = GenLetter(min_length, max_length)
     #dataGenerator = FakeTextDataGenerator()
 
     strings = []
     for i in range(count):
-        strings.append(''.join(genLetter.get_letter(words)))
+        char = ''.join(gen_letter.get_letter(words))
+        while gen_letter.is_valid_char(char):
+            char = ''.join(gen_letter.get_letter(words))
+        strings.append(char)
     string_count = len(strings)
     g_fonts = []
     for i in range(count):
         g_fonts.append(random.choice(fonts))
+
+    #print(">>>>>>>>strings: \n", strings)
 
     p = Pool(args.thread_count)
     for _ in tqdm(p.imap_unordered(

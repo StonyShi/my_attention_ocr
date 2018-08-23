@@ -8,7 +8,7 @@ from tensorflow.python.ops import ctc_ops as ctc
 import cv2
 from tqdm import tqdm
 from multiprocessing import Pool
-
+from text.gen_letter import GenLetter
 
 def gen_crop_bg(im, size, out_dir, width, height):
     if not os.path.exists(out_dir):
@@ -186,6 +186,7 @@ class GenImage(object):
         self.min_size = min_size
         self.max_size = max_size
         self.charset = config.charset
+        self.gen_letter = GenLetter(min_size, max_size)
 
         if os.path.isdir(fonts):
             font_list = self.get_font_file(fonts)
@@ -211,29 +212,7 @@ class GenImage(object):
         return (random.randint(32, 127), random.randint(32, 127), random.randint(32, 127))
 
     def get_letter(self, wds):
-        letter = []
-        len_str = 0
-        size = random.randrange(self.min_size, self.max_size)
-        def _append(c):
-            if len(c) == 1:
-                letter.append(c)
-            elif len(c) > 1:
-                #letter.append(" ")
-                letter.extend(list(c))
-        for i in range(size):
-            c = random.choice(wds)
-            if (len_str + len(c)) > size:
-                _append(c)
-                break
-            while True:
-                if not self.config.is_valid_char(c):
-                    len_str = len_str + len(c)
-                    _append(c)
-                    break
-                c = random.choice(wds)
-        if len(letter) > self.max_size:
-            return letter[:self.max_size]
-        return letter
+        return self.gen_letter.get_letter(wds)
 
     def is_none(self, oj):
         try:

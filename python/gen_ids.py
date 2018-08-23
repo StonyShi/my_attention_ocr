@@ -1,6 +1,4 @@
-import random,string
-import re
-import random
+import re, os, random, argparse
 from datetime import datetime, timedelta, date
 
 area_dict = {'451381': '合山市', '542336': '聂拉木县', '320902': '亭湖区', '321324': '泗洪县', '210900': '阜新',
@@ -572,16 +570,34 @@ def gen_id_card(area_code, age, gender):
     return result + str(check_code_list[sum([a * b for a, b in zip(id_code_list, [int(a) for a in result])]) % 11])
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Generate text words')
+    parser.add_argument(
+        "-c",
+        "--count",
+        type=int,
+        nargs="?",
+        help="write count words",
+        default=5
+    )
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
+
+    # Argument parsing
+    args = parse_arguments()
+    print(args)
 
     f = open('ids_list.txt', mode='w')
 
     for key in area_dict.keys():
         try:
-            area_code = key
-            id_number = gen_id_card(int(area_code), random.randrange(22, 50), random.randrange(0, 2))
-            #print("公民身份证号码 %s" % (id_number))
-            f.write("公民身份证号码 %s\n" % (id_number))
+            for i in range(args.count):
+                area_code = key
+                id_number = gen_id_card(int(area_code), random.randrange(22, 50), random.randrange(0, 2))
+                # print("公民身份证号码 %s" % (id_number))
+                f.write("公民身份证号码 %s\n" % (id_number))
         except Exception as e:
             pass
 

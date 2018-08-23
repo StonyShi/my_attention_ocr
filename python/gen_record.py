@@ -7,6 +7,9 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import  matplotlib.font_manager as fm
 import tensorflow as tf
+from multiprocessing import Pool
+import time
+import tqdm
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -23,7 +26,7 @@ tf.app.flags.DEFINE_string('dataset_name',
                            'the dataset name')
 
 tf.app.flags.DEFINE_integer('dataset_nums',
-                           10240,
+                           200,
                            'pre the dataset of nums')
 
 tf.app.flags.DEFINE_string('output_dir',
@@ -33,6 +36,10 @@ tf.app.flags.DEFINE_string('output_dir',
 tf.app.flags.DEFINE_bool('test',
                            False,
                            'The test tf recored')
+
+tf.app.flags.DEFINE_integer('thread',
+                           10,
+                           'the thread count')
 
 
 tf.app.flags.DEFINE_string('suffix', 'png', 'suffix of image in data set')
@@ -104,7 +111,37 @@ def is_valid_char(name, words):
             return True
     return False
 
+def get_image_files2(image_dir,check=False):
+    t = time.time()
+    im_names = [] #glob.glob(os.path.join(image_dir, '*.{jpg,png,gif}'))
+    for ext in ('*.png', '*.jpg', '*.gif'):
+        im_names.extend(glob.glob(os.path.join(image_dir, ext)))
+    chinese_dict = read_dict(FLAGS.dict_text)
+    words = list(chinese_dict.keys())
+    count = 0
+    image_tupe = []
+    for im_name in im_names:
+        try:
+            if not os.path.exists(im_name):
+                continue
+            if check:
+                Image.open(im_name)
+                # cv2.imread(fp)
+            label = im_name.split('_')[1]
+            if is_valid_char(label, words):
+                os.remove(im_name)
+                continue
+            image_tupe.append((im_name, label))
+            count += 1
+        except Exception as e:
+            print("fn:%s,error: %s", im_name, e)
+            os.remove(im_name)
+    te = time.time() - t
+    print("cost time:%f, count:%d" % (te, len(image_tupe)))
+    return image_tupe
+
 def get_image_files(image_dir,check=False):
+    t = time.time()
     chinese_dict = read_dict(FLAGS.dict_text)
     words = list(chinese_dict.keys())
     count = 0
@@ -130,6 +167,8 @@ def get_image_files(image_dir,check=False):
         except Exception as e:
             print("fn:%s,error: %s", fp, e)
             os.remove(fp)
+    te = time.time() - t
+    print("cost time:%f, count:%d" % (te, len(image_tupe)))
     return image_tupe
 
 
@@ -194,6 +233,81 @@ def make_tfrecord(dict_chinese, dataset_name, nums):
                 end = len(image_tupe)
             tfrecord_writer = get_tfrecord_writer(start, end)
     tfrecord_writer.close()
+def make_tfrecord2(dict_chinese, dataset_name, shard_nums):
+    """
+    制作 tfrecord 文件
+    :return:
+    """
+    if not os.path.exists(FLAGS.output_dir):
+        os.makedirs(FLAGS.output_dir)
+
+    image_tupe = get_image_files(FLAGS.dataset_dir)
+
+    count = len(image_tupe)
+    avg_num = int(count / shard_nums)
+    if count % shard_nums != 0:
+        avg_num = avg_num + 1
+    print("avg_num: ", avg_num)
+
+    vv_list = []
+    for i in range(0, count, shard_nums):
+        start = i
+        end = i + shard_nums
+        # print("start:%d-of-end:%d"%(start, end))
+        filename = os.path.join(FLAGS.output_dir, dataset_name + '.tfrecords-%.5d-of-%.5d' % (start, end))
+        #print('{} / {}, {}'.format(start, end, filename))
+        vv = (image_tupe[start:end], filename, dict_chinese)
+        vv_list.append(vv)
+    done_list = []
+    pool = Pool(FLAGS.thread)
+    for _ in tqdm.tqdm(pool.imap_unordered(do_make_tfrecord, vv_list), total=len(vv_list)):
+        done_list.append(_)
+        pass
+    pool.close()
+    pool.join()
+
+    print("done : ")
+    for done in done_list:
+        print(done)
+
+def do_make_tfrecord(vv):
+    image_tupe = vv[0]
+    filename = vv[1]
+    dict_chinese = vv[2]
+    #print(image_tupe)
+    #print("start:%d-of-end:%d" % (start, end))
+
+    # 图片resize的高和宽
+    split_results = FLAGS.height_and_width.split(',')
+    height = int(split_results[0].strip())
+    width = int(split_results[1].strip())
+
+    tfrecord_writer = tf.python_io.TFRecordWriter(filename)
+
+    for path_img, label in image_tupe:
+        img = Image.open(path_img)
+        orig_width = img.size[0]
+        orig_height = img.size[1]
+        img = img.resize((width, height), Image.ANTIALIAS)
+        image_data = img.tobytes()
+
+        char_ids_padded, char_ids_unpadded = encode_utf8_string(text=label, length=FLAGS.length_of_text,
+                                                                dic=dict_chinese, null_char_id=FLAGS.null_char_id)
+        one_sample = tf.train.Example(features=tf.train.Features(
+            feature={
+                'image/encoded': _bytes_feature(image_data),
+                'image/format': _bytes_feature(b'raw'),
+                # 'image/format': _bytes_feature(b"png"),
+                'image/width': _int64_feature([width]),
+                'image/orig_width': _int64_feature([orig_width]),
+                'image/class': _int64_feature(char_ids_padded),
+                'image/unpadded_class': _int64_feature(char_ids_unpadded),
+                'image/text': _bytes_feature(bytes(label, 'utf-8'))
+            }
+        ))
+        tfrecord_writer.write(one_sample.SerializeToString())
+    tfrecord_writer.close()
+    return filename
 def parse_tfrecord_file():
     reader = tf.TFRecordReader()
     # 创建一个队列来维护输入文件列表
@@ -272,17 +386,19 @@ def write_dict():
             f.write("%d\t%c\n" % (index, c))
             index = index+1
 
+
+
 #python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=1024 --output_dir=datasets/train
 if __name__ == '__main__':
     chinese_dict = read_dict(FLAGS.dict_text)
-    make_tfrecord(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
+    make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
 
 
     # write_dict()
     # words = open("resource/gb2312_list.txt", 'r').read()
     # print(words)
 
-    #parse_tfrecord_file()
+    # parse_tfrecord_file()
     #
     # import datasets
 

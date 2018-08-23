@@ -35,6 +35,11 @@ if __name__ == '__main__':
         f.write('姓名 %s%s\n'%(random.choice(xing),random.choice(ming)))
         f.write('所有人 %s%s\n'%(random.choice(xing), random.choice(ming)))
 
+        f.write('姓 名 %s%s\n' % (random.choice(xing), random.choice(ming)))
+        f.write('所 有 人 %s%s\n' % (random.choice(xing), random.choice(ming)))
+
     for name in names:
         f.write('姓名 %s\n' % (name))
         f.write('所有人 %s\n' % (name))
+        f.write('姓 名 %s\n' % (name))
+        f.write('所 有 人 %s\n' % (name))

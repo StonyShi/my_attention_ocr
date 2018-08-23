@@ -77,7 +77,7 @@ flags.DEFINE_boolean('reset_train_dir', False,
 flags.DEFINE_boolean('show_graph_stats', False,
                      'Output model size stats to stderr.')
 
-flags.DEFINE_float('pre_gpu_mem', 0.85,
+flags.DEFINE_float('pre_gpu_mem', 0.55,
                    'per_process_gpu_memory_fraction')
 # yapf: enable
 
