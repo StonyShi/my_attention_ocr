@@ -75,7 +75,8 @@ if __name__ == '__main__':
 
 
     def reformat(dataset, labels, labels_src):
-        dataset = dataset.reshape((-1, IMAGE_WIDTH, IMAGE_HEIGHT, 1)).astype(np.float32)
+        #dataset = dataset.reshape((-1, IMAGE_WIDTH, IMAGE_HEIGHT, 1)).astype(np.float32)
+        dataset = dataset.reshape((-1, IMAGE_HEIGHT,  IMAGE_WIDTH, 1)).astype(np.float32)
         labels = sparse_tuple_from_label(labels)
         ##print("dataset: ", dataset.shape)
         return dataset, labels, labels_src
@@ -90,8 +91,8 @@ if __name__ == '__main__':
     tf.logging.set_verbosity(tf.logging.ERROR)
     tf.reset_default_graph()
 
-    x = tf.placeholder(tf.float32, shape=[None, None, 32, 1], name="X")
-    tf.summary.image('input', x, 3)
+    x = tf.placeholder(tf.float32, shape=[None, None, None, 1], name="X")
+    tf.summary.image('input', x, 5)
     is_train = tf.placeholder(tf.bool, name="is_train")
     y = tf.sparse_placeholder(tf.int32, name='Y')
     keep_prob = tf.placeholder(tf.float32, name='keep_prob')
@@ -124,7 +125,7 @@ if __name__ == '__main__':
         net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool2')
 
         net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3')
-        net = slim.max_pool2d(net, [2, 2], stride=[1, 2], scope='pool3')
+        net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool3')
         # [kernel_height, kernel_width],[stride_height, stride_width]
 
         net = slim.conv2d(net, 512, kernel_size=[3, 3], scope="conv4")
@@ -135,7 +136,7 @@ if __name__ == '__main__':
         net = slim.batch_norm(net, is_training=is_train, activation_fn=None, scope="conv5_batch")
         add_net_collection(net)
 
-        net = slim.max_pool2d(net, [2, 2], stride=[1, 2], scope='pool4')
+        net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool4')
         # net = slim.dropout(net, keep_prob=keep_prob, is_training=is_train, scope="pool4/dropout")
 
         # [kernel_height, kernel_width],[stride_height, stride_width]
@@ -144,6 +145,8 @@ if __name__ == '__main__':
         # net = slim.batch_norm(net, is_training=is_train, activation_fn=tf.nn.relu, scope="conv6_batch")
         # add_net_collection(net)
 
+    ## [batch, height, width, features] > [batch, width, height, features]
+    net = tf.transpose(net, [0, 2, 1, 3])
     shape = tf.shape(net)  # [batch, width, height, features]
     n, w = shape[0], shape[1]
     # name='seq_len'
@@ -281,7 +284,7 @@ if __name__ == '__main__':
 
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    inputs = np.arange(32 * 100 * 8).reshape((8, 100, 32, 1))
+    inputs = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
     with tf.Session() as sess:
         # 初始化变量
         init_op = tf.global_variables_initializer()
@@ -301,7 +304,7 @@ if __name__ == '__main__':
         init_op = tf.global_variables_initializer()
         sess.run(init_op)
         dataset, labels, labels_src = next_batch(8)
-        feed_dict = {is_train: True, x: inputs, y: labels, keep_prob: 0.75}
+        feed_dict = {is_train: True, x: dataset, y: labels, keep_prob: 0.75}
         print("loss: ", sess.run(loss, feed_dict=feed_dict))
         print("safe_loss: ", sess.run(safe_loss, feed_dict=feed_dict))
         print("loss_op: ", sess.run(loss_op, feed_dict=feed_dict))

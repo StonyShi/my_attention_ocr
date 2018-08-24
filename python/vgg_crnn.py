@@ -48,8 +48,9 @@ class Vgg(object):
     def __init__(self, charset_dict:dict=None):
         self.charset_dict = charset_dict
 
-    def build(self, inputs:tf.Tensor, num_classes, is_train=True, collection_name = 'my_end_points'):
-        self.inputs = inputs
+    def build(self, x:tf.Tensor, y:tf.SparseTensor, num_classes:int, is_train=True, collection_name = 'my_end_points'):
+        self.x = x
+        self.y = y
         self.is_train = is_train
         self.collection_name = collection_name
         with slim.arg_scope([slim.conv2d, slim.fully_connected],
@@ -62,7 +63,7 @@ class Vgg(object):
              slim.arg_scope([slim.batch_norm],
                             decay=0.997, epsilon=1e-5, scale=True, is_training=is_train):
 
-                net = slim.conv2d(inputs, 64, kernel_size=[3, 3], scope="conv1")
+                net = slim.conv2d(x, 64, kernel_size=[3, 3], scope="conv1")
                 net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool1')
                 net = slim.conv2d(net, 128, kernel_size=[3, 3], scope="conv2")
                 net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool2')
@@ -80,14 +81,14 @@ class Vgg(object):
         self.cnn_net = net
         self.pool_net = self.pool_views_fn(net)
 
-        shape = tf.shape(net) # [batch, height, width, features]
-        _batch, _height, _width, _features = shape[0],shape[1],shape[2],shape[3]
-        self.seq_len = tf.ones([_batch], dtype=tf.int32) * _width
-
         # [batch, height, width, features] > [batch, width, height, features]
         net = tf.transpose(net, [0, 2, 1, 3])
+        shape = tf.shape(net)  # [batch, width, height, features]
+        n, w = shape[0], shape[1]
+        seq_len = tf.ones([n], dtype=tf.int32) * w
+
         # [batch, width, height, features] > [batch, width, depth]
-        cnn_output = tf.reshape(net, [_batch, -1, 512], name="reshape_cnn_rnn")
+        cnn_output = tf.reshape(net, [shape[0], -1, 512], name="reshape_cnn_rnn")
         self.cnn_output = cnn_output
         self.add_net_collection(cnn_output)
 
@@ -141,11 +142,62 @@ class Vgg(object):
         y_pred = tf.transpose(logits, (1, 0, 2), name="y_pred")
         self.add_net_collection(y_pred)
 
+
+        self.seq_len = seq_len
         self.outputs = outputs
         self.logits_2d = logits_2d
         self.logits = logits
         self.logits_raw = logits_raw
         self.y_pred = y_pred
+
+        # True: [max_time, batch_size, depth]
+        loss = tf.nn.ctc_loss(labels=y, inputs=y_pred, sequence_length=seq_len, time_major=True,
+                              ignore_longer_outputs_than_inputs=True)
+        self.add_net_collection(loss)
+
+        safe_loss = tf.where(tf.equal(loss, np.inf), tf.ones_like(loss), loss)
+        self.add_net_collection(safe_loss)
+
+        loss_op = tf.reduce_mean(loss, name="loss_op")
+        self.add_net_collection(loss_op)
+
+        regularization_loss = tf.add_n(tf.losses.get_regularization_losses())
+        total_loss = loss_op + regularization_loss
+
+        # beam_width=100, merge_repeated=True
+        decoded, log_prob = tf.nn.ctc_beam_search_decoder(y_pred, seq_len)
+        # print(decoded) #SparseTensor
+        self.add_net_collection(log_prob)
+
+        dense_decoded = tf.sparse_tensor_to_dense(decoded[0], default_value=-1, name="dense_decoded")
+        self.add_net_collection(dense_decoded)
+
+        # The error rate
+        acc = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32), y), name="acc")
+        self.add_net_collection(acc)
+
+        # y_pred_str,y_str
+        def to_spare(dense):
+            with tf.name_scope("to_spare"):
+                where = tf.not_equal(dense, tf.constant(0, dtype=tf.int64))
+                indices = tf.where(where)
+                values = tf.gather_nd(dense, indices)
+                sparse = tf.SparseTensor(indices, values, dense_shape=tf.shape(dense, out_type=tf.int64))
+                return sparse
+
+        logits_raw_spare = to_spare(logits_raw)
+        accuracy = tf.reduce_mean(tf.edit_distance(tf.cast(logits_raw_spare, tf.int32), y), name="accuracy")
+        self.add_net_collection(accuracy)
+
+        self.loss = loss
+        self.safe_loss = safe_loss
+        self.loss_op = loss_op
+        self.regularization_loss = regularization_loss
+        self.total_loss = total_loss
+        self.decoded = decoded
+        self.dense_decoded = dense_decoded
+        self.acc = acc
+        self.accuracy = accuracy
         return self
 
     def pool_views_fn(self, nets):
@@ -171,7 +223,7 @@ class Vgg(object):
         with tf.Session() as sess:
             init_op = tf.global_variables_initializer()
             sess.run(init_op)
-            feed_dict = {self.inputs: batch_x}
+            feed_dict = {self.x: batch_x}
             run_list = [self.seq_len,
                         self.cnn_output,
                         self.pool_net,
@@ -199,7 +251,7 @@ class Vgg(object):
         tf.add_to_collection(self.collection_name, net)
 
     def summary(self):
-        tf.summary.image('input', self.inputs, 5)
+        tf.summary.image('input', self.x, 5)
         tf.summary.scalar('ctc_loss', self.loss_op)
         tf.summary.scalar('regularization_loss', self.regularization_loss)
         tf.summary.scalar('total_loss', self.total_loss)
@@ -213,54 +265,7 @@ class Vgg(object):
     def predict(self):
         pass
 
-    def _loss(self, y):
-        self.y = y
-        y_pred = self.y_pred
-        seq_len = self.seq_len
-        # True: [max_time, batch_size, depth]
-        loss = tf.nn.ctc_loss(labels=y, inputs=y_pred, sequence_length=seq_len, time_major=True,
-                              ignore_longer_outputs_than_inputs=True)
-        self.add_net_collection(loss)
-        self.loss = loss
-
-        # safe_loss = tf.where(tf.equal(loss, np.inf), tf.ones_like(loss), loss)
-        # self.add_net_collection(safe_loss)
-
-        self.loss_op = tf.reduce_mean(loss, name="loss_op")
-        self.add_net_collection(self.loss_op)
-
-        self.regularization_loss = tf.add_n(tf.losses.get_regularization_losses())
-        self.total_loss = self.loss_op + self.regularization_loss
-
-        # beam_width=100, merge_repeated=True
-        decoded, log_prob = tf.nn.ctc_beam_search_decoder(y_pred, seq_len)
-        # print(decoded) #SparseTensor
-        self.add_net_collection(log_prob)
-
-        dense_decoded = tf.sparse_tensor_to_dense(decoded[0], default_value=-1, name="dense_decoded")
-        self.add_net_collection(dense_decoded)
-
-        # The error rate
-        acc = tf.reduce_mean(tf.edit_distance(tf.cast(decoded[0], tf.int32), y), name="acc")
-        self.add_net_collection(acc)
-
-        # y_pred_str,y_str
-        def to_spare(dense):
-            with tf.name_scope("to_spare"):
-                where = tf.not_equal(dense, tf.constant(0, dtype=tf.int64))
-                indices = tf.where(where)
-                values = tf.gather_nd(dense, indices)
-                sparse = tf.SparseTensor(indices, values, dense_shape=tf.shape(dense, out_type=tf.int64))
-                return sparse
-
-        logits_raw_spare = to_spare(self.logits_raw)
-        self.accuracy = tf.reduce_mean(tf.edit_distance(tf.cast(logits_raw_spare, tf.int32), y), name="accuracy")
-        self.add_net_collection(self.accuracy)
-
-        return self.total_loss
-
-    def train_op(self, y):
-        total_loss = self._loss(y)
+    def train_op(self):
         # Training step
         global_step = tf.Variable(0, trainable=False, name="global_step")
         learning_rate = 1e-6 + tf.train.exponential_decay(1e-3, global_step, decay_steps=1000, decay_rate=0.90,
@@ -268,7 +273,7 @@ class Vgg(object):
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            train_op = optimizer.minimize(total_loss, name="train_op")
+            train_op = optimizer.minimize(self.total_loss, name="train_op")
 
         self.learning_rate = learning_rate
         self.global_step = global_step
@@ -277,17 +282,16 @@ class Vgg(object):
 
     def test_loss(self, dataset, labels, labels_src):
         with tf.Session() as sess:
-            feed_dict = {self.inputs: dataset, self.y: labels, self.global_step: 1}
-            run_list = [self.loss,
-                        self.loss_op,
-                        self.total_loss,
-                        self.accuracy]
-            _loss, _loss_op, _total_loss, _accuracy \
-                = sess.run(run_list, feed_dict=feed_dict)
-            print("_loss: ", _loss)
-            print("_loss_op: ", _loss_op)
-            print("_total_loss: ", _total_loss)
-            print("_accuracy: ", _accuracy)
+            # 初始化变量
+            init_op = tf.global_variables_initializer()
+            sess.run(init_op)
+            feed_dict = {self.x: dataset, self.y: labels}
+            print("loss: ", sess.run(self.loss, feed_dict=feed_dict))
+            #print("safe_loss: ", sess.run(self.safe_loss, feed_dict=feed_dict))
+            print("loss_op: ", sess.run(self.loss_op, feed_dict=feed_dict))
+            print("total_loss: ", sess.run(self.total_loss, feed_dict=feed_dict))
+            print("accuracy: ", sess.run(self.accuracy, feed_dict=feed_dict))
+            #print("acc: ", sess.run(self.acc, feed_dict={x: dataset, y: labels}))
 
 
     def print_network(self):
@@ -311,14 +315,11 @@ if __name__ == '__main__':
     tf.reset_default_graph()
 
     x = tf.placeholder(tf.float32, shape=[None, None, None, 1], name="X")
-    vgg = Vgg().build(x, num_classes, True)
-
-    batch_x = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
-    vgg.test_net_out(batch_x)
-
     y = tf.sparse_placeholder(tf.int32, name='Y')
 
-    #vgg.print_network()
+    vgg = Vgg().build(x, y, num_classes, True)
+
+
 
     bg_img = Image.new("RGB", (IMAGE_WIDTH, IMAGE_HEIGHT), (65, 105, 225))
 
@@ -383,7 +384,13 @@ if __name__ == '__main__':
         return dataset, labels, labels_src
 
 
-    vgg = vgg.train_op(y)
+    batch_x = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
+    vgg.test_net_out(batch_x)
+
+    vgg.print_network()
+
     dataset, labels, labels_src = next_batch(8)
     vgg.test_loss(dataset, labels, labels_src)
+
+
 

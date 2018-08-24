@@ -40,6 +40,8 @@ python/models
 **/*.ckpt*
 **/checkpoint
 
+**/*.tfrecords*
+
 **/text/*.txt
 
 python/testdata2/*
