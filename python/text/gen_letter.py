@@ -30,7 +30,8 @@ def read_dict(filename='resource/new_dic2.txt', null_character=u'\u2591'):
             charset[char] = code
     return charset
 
-
+def reverse_dict(m_dict):
+    return dict(zip(m_dict.values(), m_dict.keys()))
 
 class GenLetter(object):
     def __init__(self, min_size, max_size, charset=None):

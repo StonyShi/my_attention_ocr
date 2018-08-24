@@ -54,22 +54,23 @@ def create_strings_from_new(minimum_length, count, lang, max_length=20, word="æ–
                 ' '.join(re.findall(r"[\w']+", s.strip()))[:] for s in soup.get_text().splitlines()
             ]
         ))
-        __lines = []
-        for line in lines:
-            if(len(line)) > max_length*2:
-                for i in range(0, len(line), max_length):
-                    start = i
-                    end = i + max_length
-                    strs = (line[start:end]).strip()
-                    __lines.append(strs)
-                # if lang == 'cn':
-                #     seg_list = jieba.cut(line, cut_all=False)
-                #     __lines.extend(seg_list)
-                # else:
-                #     seg_list = line.split(' ')
-                #     __lines.extend(seg_list)
-            else:
-                __lines.append(line)
+        __lines = lines
+        # __lines = []
+        # for line in lines:
+        #     if(len(line)) > max_length*2:
+        #         for i in range(0, len(line), max_length):
+        #             start = i
+        #             end = i + max_length
+        #             strs = (line[start:end]).strip()
+        #             __lines.append(strs)
+        #         # if lang == 'cn':
+        #         #     seg_list = jieba.cut(line, cut_all=False)
+        #         #     __lines.extend(seg_list)
+        #         # else:
+        #         #     seg_list = line.split(' ')
+        #         #     __lines.extend(seg_list)
+        #     else:
+        #         __lines.append(line)
         # Remove the last lines that talks about contributing
         __lines = list(filter(
             lambda s: len(s.strip()) > 2,
@@ -109,22 +110,23 @@ def create_strings_from_wikipedia(minimum_length, count, lang, max_length=20):
                 ' '.join(re.findall(r"[\w']+", s.strip()))[:] for s in soup.get_text().splitlines()
             ]
         ))
-        __lines = []
-        for line in lines:
-            if (len(line)) > max_length*2:
-                for i in range(0, len(line), max_length):
-                    start = i
-                    end = i + max_length
-                    strs = (line[start:end]).strip()
-                    __lines.append(strs)
-                # if lang == 'cn':
-                #     seg_list = jieba.cut(line, cut_all=False)
-                #     __lines.extend(seg_list)
-                # else:
-                #     seg_list = line.split(' ')
-                #     __lines.extend(seg_list)
-            else:
-                __lines.append(line)
+        __lines = lines
+        # __lines = []
+        # for line in lines:
+        #     if (len(line)) > max_length*2:
+        #         for i in range(0, len(line), max_length):
+        #             start = i
+        #             end = i + max_length
+        #             strs = (line[start:end]).strip()
+        #             __lines.append(strs)
+        #         # if lang == 'cn':
+        #         #     seg_list = jieba.cut(line, cut_all=False)
+        #         #     __lines.extend(seg_list)
+        #         # else:
+        #         #     seg_list = line.split(' ')
+        #         #     __lines.extend(seg_list)
+        #     else:
+        #         __lines.append(line)
         # Remove the last lines that talks about contributing
         #sentences.extend(lines[0:max([1, len(lines) - 5])])
         __lines = list(filter(
@@ -138,12 +140,15 @@ def create_strings_from_wikipedia(minimum_length, count, lang, max_length=20):
 def create_strings_from_file(filename, max_length):
 
     parentdir = (os.path.abspath(__file__))
-    for i in range(3):
-        if os.path.exists(filename):
-            break
-        if not os.path.exists(filename):
-            parentdir = os.path.dirname(parentdir)
-            filename = os.path.join(parentdir, filename)
+    if not os.path.exists(filename):
+        parentdir = os.path.dirname(parentdir)
+        for i in range(3):
+            if os.path.exists(os.path.join(parentdir, filename)):
+                filename = os.path.join(parentdir, filename)
+                break
+            if not os.path.exists(os.path.join(parentdir, filename)):
+                parentdir = os.path.dirname(parentdir)
+
 
     strings = []
     with open(filename, 'r', encoding="utf8") as f:

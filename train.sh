@@ -39,8 +39,8 @@ python gen_run2.py -t 20 -b 1  -w 2 -f 28 -na 1 -c 100000 -k 5 -rk -d -do  -l cn
 python gen_run2.py -t 20 -b 3  -w 2 -f 28 -na 1 -c 100000 -k 5 -rk -d -do  -l cn -e png  -mxw 18 -miw 15 -news --output_dir out4  -i text/ens.txt
 python gen_run2.py -t 20 -b 1  -w 2 -f 28 -na 1 -c 100000 -k 5 -rk -d -do  -l cn -e png  -mxw 18 -miw 15 -news --output_dir out4  -i text/ens.txt
 
-python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 50000 -news -mxw 18 -miw 15 -l cn -e png  --output_dir out2 -i text/cns.txt
-python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 60000 -news -mxw 18 -miw 15 -l cn -e png  --output_dir out3 -i text/cns.txt
+python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 10000 -news -mxw 18 -miw 15 -l cn -e png  --output_dir out2 -i text/cns.txt
+python gen_run.py -t 15 -fs 28 -new_h 32 -new_w 320 -w 2 -c 10000 -news -mxw 18 -miw 15 -l cn -e png  --output_dir out3 -i text/cns.txt
 
 
 python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=10000 --output_dir=datasets/train

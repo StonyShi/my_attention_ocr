@@ -48,7 +48,7 @@ flags.DEFINE_integer('save_summaries_secs', 60,
 flags.DEFINE_integer('save_interval_secs', 600,
                      'Frequency in seconds of saving the model.')
 
-flags.DEFINE_integer('max_number_of_steps', int(1e10),
+flags.DEFINE_integer('max_number_of_steps', int(1e5),
                      'The maximum number of gradient steps.')
 
 #'./resource/inception_v3.ckpt'

@@ -313,18 +313,23 @@ def parse_tfrecord_file():
     # 创建一个队列来维护输入文件列表
     # filename_queue = tf.train.string_input_producer([FLAGS.path_save_tfrecord])
     # 注，files 是一个local variable，不会保存到checkpoint,需要用sess.run(tf.local_variables_initializer())初始化
-    dataset_name = FLAGS.dataset_name
-    def get_dataset():
-        outs = []
-        for f in os.listdir(FLAGS.output_dir):
-            if f.startswith(dataset_name):
-                outs.append(os.path.join(FLAGS.output_dir, f))
-        return outs
+    # dataset_name = FLAGS.dataset_name
+    # def get_dataset():
+    #     outs = []
+    #     for f in os.listdir(FLAGS.output_dir):
+    #         if f.startswith(dataset_name):
+    #             outs.append(os.path.join(FLAGS.output_dir, f))
+    #     return outs
 
-    outs = get_dataset()
+    dataset_name_files = "%s*"%os.path.join(FLAGS.output_dir, FLAGS.dataset_name)
+
+    # outs = get_dataset()
+    print("-------------------------")
     print(">>> outs: ")
-    print(outs)
-    files = tf.train.match_filenames_once(random.choice(outs))
+    print(dataset_name_files)
+    # print(outs)
+    print("-------------------------")
+    files = tf.train.match_filenames_once(dataset_name_files)
     filename_queue = tf.train.string_input_producer(files)
     # 读取一个样列
     _, serialized_example = reader.read(filename_queue)
@@ -390,8 +395,8 @@ def write_dict():
 
 #python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=1024 --output_dir=datasets/train
 if __name__ == '__main__':
-    chinese_dict = read_dict(FLAGS.dict_text)
-    make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
+    # chinese_dict = read_dict(FLAGS.dict_text)
+    # make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
 
 
     # write_dict()
@@ -403,4 +408,42 @@ if __name__ == '__main__':
     # import datasets
 
     # print(getattr(datasets, "my_data"))
+
+
+
+    image_tupe = (get_image_files(FLAGS.dataset_dir))
+
+    def convert_to_tfrecord():
+        writer = tf.python_io.TFRecordWriter("datasets/training.tfrecords")
+        count = 0
+        for path_img, label in image_tupe:
+            img = Image.open(path_img)
+            if img.mode != "RGB":
+                img = img.convert('RGB')
+            if img.mode == "RGB":
+                img = img.resize((320, 32), Image.NEAREST)
+                img_raw = img.tobytes()
+                example = tf.train.Example(
+                    features=tf.train.Features(feature={
+                        "img_raw": tf.train.Feature(
+                            bytes_list=tf.train.BytesList(
+                                value=[img_raw]))}))
+                writer.write(example.SerializeToString())
+                count = count + 1
+        print("count: ", count)
+        writer.close()
+
+
+    def read_tfrecord(filenames, num_epochs, shuffle=True):
+        filename_queue = tf.train.string_input_producer(
+            [filenames], num_epochs=num_epochs, shuffle=True)
+
+        reader = tf.TFRecordReader()
+        _, serialized_example = reader.read(filename_queue)
+        features = tf.parse_single_example(serialized_example, features={
+            "img_raw": tf.FixedLenFeature([], tf.string), })
+        img = tf.decode_raw(features["img_raw"], tf.uint8)
+        img = tf.reshape(img, [32, 320, 3])
+        return img
+
     pass

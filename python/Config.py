@@ -100,7 +100,7 @@ def save_json(out_name, charset):
 
 
 class Config(object):
-    def __init__(self, charset='0123456789', gb2312=False):
+    def __init__(self, charset='0123456789', gb2312=True):
         if gb2312:
             chinese_dict = read_dict()
             words = list(chinese_dict.keys())
