@@ -214,6 +214,7 @@ def main(_):
     train(total_loss, init_fn, hparams)
 
 
+
 #python train.py --checkpoint_inception=./resource/inception_v3.ckpt --dataset_name=my_data
 if __name__ == '__main__':
     print("-------------------------------")

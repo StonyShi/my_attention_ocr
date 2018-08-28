@@ -179,7 +179,7 @@ class Config(object):
 
 
 class GenImage(object):
-    def __init__(self, config: Config, width=128, height=32, max_size=8, min_size=3, font_size=30, fonts="fonts"):
+    def __init__(self, config: Config, width=128, height=32, max_size=8, min_size=3, font_size=30, fonts="fonts", max_font=0, min_font=0):
         self.config = config
         self.width = width
         self.height = height
@@ -192,7 +192,11 @@ class GenImage(object):
             font_list = self.get_font_file(fonts)
             _fonts = []
             for f in font_list:
-                _fonts.append(ImageFont.truetype(f, int(font_size)))
+                if max_font > 1 and min_font > 1:
+                    for fsize in range(min_font, max_font):
+                        _fonts.append(ImageFont.truetype(f, int(fsize)))
+                else:
+                    _fonts.append(ImageFont.truetype(f, int(font_size)))
             self.fonts = _fonts
         else:
             self.fonts = None
@@ -320,6 +324,10 @@ class GenImage(object):
         letter = self.get_letter(wds)
         while self.is_valid_char2((''.join(letter).strip()), self.charset):
             letter = self.get_letter(wds)
+
+        while len(''.join(letter).strip()) < self.min_size:
+            letter = self.get_letter(wds)
+
         img = self._gen_image(letter, bg_img, text_color)
         letter = ''.join(letter).strip()
         return img, letter

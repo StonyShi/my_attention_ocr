@@ -20,11 +20,14 @@ from text.string_generator import (
     create_strings_from_wikipedia
 )
 
+from text.gen_letter import read_dict, reverse_dict
 
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.framework.python.ops import variables as variables_lib
 from tensorflow.contrib.slim.python.slim.nets import vgg
 from tensorflow.python.platform import test
+
+from utils import CharsetMapper
 
 if __name__ == '__main__':
 
@@ -399,5 +402,6 @@ if __name__ == '__main__':
     #     saver.save(sess=sess, save_path=model_path, meta_graph_suffix="meta", write_meta_graph=True, global_step=_global_step)
     #     coord.request_stop()
     #     coord.join(threads)
+
 
 

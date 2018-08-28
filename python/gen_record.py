@@ -111,34 +111,6 @@ def is_valid_char(name, words):
             return True
     return False
 
-def get_image_files2(image_dir,check=False):
-    t = time.time()
-    im_names = [] #glob.glob(os.path.join(image_dir, '*.{jpg,png,gif}'))
-    for ext in ('*.png', '*.jpg', '*.gif'):
-        im_names.extend(glob.glob(os.path.join(image_dir, ext)))
-    chinese_dict = read_dict(FLAGS.dict_text)
-    words = list(chinese_dict.keys())
-    count = 0
-    image_tupe = []
-    for im_name in im_names:
-        try:
-            if not os.path.exists(im_name):
-                continue
-            if check:
-                Image.open(im_name)
-                # cv2.imread(fp)
-            label = im_name.split('_')[1]
-            if is_valid_char(label, words):
-                os.remove(im_name)
-                continue
-            image_tupe.append((im_name, label))
-            count += 1
-        except Exception as e:
-            print("fn:%s,error: %s", im_name, e)
-            os.remove(im_name)
-    te = time.time() - t
-    print("cost time:%f, count:%d" % (te, len(image_tupe)))
-    return image_tupe
 
 def get_image_files(image_dir,check=False):
     t = time.time()
@@ -160,6 +132,9 @@ def get_image_files(image_dir,check=False):
                 #cv2.imread(fp)
             label = f.split('_')[1]
             if is_valid_char(label, words):
+                os.remove(fp)
+                continue
+            if len(label) == 0:
                 os.remove(fp)
                 continue
             image_tupe.append((fp, label))
@@ -288,7 +263,8 @@ def do_make_tfrecord(vv):
         img = Image.open(path_img)
         orig_width = img.size[0]
         orig_height = img.size[1]
-        img = img.resize((width, height), Image.ANTIALIAS)
+        if (orig_width != width) and (orig_height != height):
+            img = img.resize((width, height), Image.ANTIALIAS)
         image_data = img.tobytes()
 
         char_ids_padded, char_ids_unpadded = encode_utf8_string(text=label, length=FLAGS.length_of_text,
@@ -395,8 +371,8 @@ def write_dict():
 
 #python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=1024 --output_dir=datasets/train
 if __name__ == '__main__':
-    # chinese_dict = read_dict(FLAGS.dict_text)
-    # make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
+    chinese_dict = read_dict(FLAGS.dict_text)
+    make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
 
 
     # write_dict()
@@ -409,41 +385,5 @@ if __name__ == '__main__':
 
     # print(getattr(datasets, "my_data"))
 
-
-
-    image_tupe = (get_image_files(FLAGS.dataset_dir))
-
-    def convert_to_tfrecord():
-        writer = tf.python_io.TFRecordWriter("datasets/training.tfrecords")
-        count = 0
-        for path_img, label in image_tupe:
-            img = Image.open(path_img)
-            if img.mode != "RGB":
-                img = img.convert('RGB')
-            if img.mode == "RGB":
-                img = img.resize((320, 32), Image.NEAREST)
-                img_raw = img.tobytes()
-                example = tf.train.Example(
-                    features=tf.train.Features(feature={
-                        "img_raw": tf.train.Feature(
-                            bytes_list=tf.train.BytesList(
-                                value=[img_raw]))}))
-                writer.write(example.SerializeToString())
-                count = count + 1
-        print("count: ", count)
-        writer.close()
-
-
-    def read_tfrecord(filenames, num_epochs, shuffle=True):
-        filename_queue = tf.train.string_input_producer(
-            [filenames], num_epochs=num_epochs, shuffle=True)
-
-        reader = tf.TFRecordReader()
-        _, serialized_example = reader.read(filename_queue)
-        features = tf.parse_single_example(serialized_example, features={
-            "img_raw": tf.FixedLenFeature([], tf.string), })
-        img = tf.decode_raw(features["img_raw"], tf.uint8)
-        img = tf.reshape(img, [32, 320, 3])
-        return img
 
     pass

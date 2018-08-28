@@ -46,7 +46,7 @@ def apply_with_random_selector(x, func, num_cases):
   ])[0]
 
 
-def distort_color(image, color_ordering=0, fast_mode=True, scope=None):
+def distort_color(image, color_ordering=0, fast_mode=True, clip=True,scope=None):
   """Distort the color of a Tensor image.
 
   Each color distortion is non-commutative and thus ordering of the color ops
@@ -97,7 +97,10 @@ def distort_color(image, color_ordering=0, fast_mode=True, scope=None):
         raise ValueError('color_ordering must be in [0, 3]')
 
     # The random_* ops do not necessarily clamp.
-    return tf.clip_by_value(image, 0.0, 1.0)
+    if clip:
+        return tf.clip_by_value(image, 0.0, 1.0)
+    else:
+        return image
 
 
 def distorted_bounding_box_crop(image,

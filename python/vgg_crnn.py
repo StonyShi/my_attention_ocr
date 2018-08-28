@@ -20,6 +20,9 @@ from text.string_generator import (
     create_strings_from_wikipedia
 )
 
+import utils
+
+from utils import read_dict, reverse_dict, read_charset, CharsetMapper, decode_code, encode_code
 
 import tensorflow.contrib.slim as slim
 from tensorflow.contrib.framework.python.ops import variables as variables_lib
@@ -43,14 +46,17 @@ def create_optimizer(learning_rate, optimizer_type="adam", momentum=0.8):
             learning_rate, momentum=momentum)
     return optimizer
 
+
+
 class Vgg(object):
 
     def __init__(self, charset_dict:dict=None):
         self.charset_dict = charset_dict
 
-    def build(self, x:tf.Tensor, y:tf.SparseTensor, num_classes:int, is_train=True, collection_name = 'my_end_points'):
+    def build(self, x:tf.Tensor, y:tf.SparseTensor, num_classes:int, collection_name = 'my_end_points'):
         self.x = x
         self.y = y
+        is_train = y is not None
         self.is_train = is_train
         self.collection_name = collection_name
         with slim.arg_scope([slim.conv2d, slim.fully_connected],
@@ -138,6 +144,9 @@ class Vgg(object):
         logits_raw = tf.argmax(logits, axis=2, name="logits_raw")
         self.add_net_collection(logits_raw)
 
+        predicted_ids = tf.to_int32(logits_raw, name='predicted_ids')
+        self.add_net_collection(predicted_ids)
+
         # Convert to time-major: `[max_time, batch_size, num_classes]'
         y_pred = tf.transpose(logits, (1, 0, 2), name="y_pred")
         self.add_net_collection(y_pred)
@@ -148,6 +157,7 @@ class Vgg(object):
         self.logits_2d = logits_2d
         self.logits = logits
         self.logits_raw = logits_raw
+        self.predicted_ids = predicted_ids
         self.y_pred = y_pred
 
         # True: [max_time, batch_size, depth]
@@ -156,7 +166,7 @@ class Vgg(object):
         self.add_net_collection(loss)
 
         safe_loss = tf.where(tf.equal(loss, np.inf), tf.ones_like(loss), loss)
-        self.add_net_collection(safe_loss)
+        # self.add_net_collection(safe_loss)
 
         loss_op = tf.reduce_mean(loss, name="loss_op")
         self.add_net_collection(loss_op)
@@ -200,6 +210,45 @@ class Vgg(object):
         self.accuracy = accuracy
         return self
 
+    def get_loss(self):
+        slim.losses.add_loss(self.total_loss)
+        total_loss = slim.losses.get_total_loss(False)
+        return total_loss
+
+    def create_init_fn_to_restore(self, master_checkpoint):
+        """Creates an init operations to restore weights from various checkpoints.
+
+        Args:
+          master_checkpoint: path to a checkpoint which contains all weights for
+            the whole model.
+        Returns:
+          a function to run initialization ops.
+        """
+        all_assign_ops = []
+        all_feed_dict = {}
+
+        def assign_from_checkpoint(variables, checkpoint):
+            logging.info('Request to re-store %d weights from %s',
+                         len(variables), checkpoint)
+            if not variables:
+                logging.error('Can\'t find any variables to restore.')
+                sys.exit(1)
+            assign_op, feed_dict = slim.assign_from_checkpoint(checkpoint, variables)
+            all_assign_ops.append(assign_op)
+            all_feed_dict.update(feed_dict)
+
+        logging.info('variables_to_restore:\n%s' % utils.variables_to_restore().keys())
+        logging.info('moving_average_variables:\n%s' % [v.op.name for v in tf.moving_average_variables()])
+        logging.info('trainable_variables:\n%s' % [v.op.name for v in tf.trainable_variables()])
+        if master_checkpoint:
+            assign_from_checkpoint(utils.variables_to_restore(), master_checkpoint)
+
+        def init_assign_fn(sess):
+            logging.info('Restoring checkpoint(s)')
+            sess.run(all_assign_ops, all_feed_dict)
+
+        return init_assign_fn
+
     def pool_views_fn(self, nets):
         """Combines output of multiple convolutional towers into a single tensor.
 
@@ -220,8 +269,11 @@ class Vgg(object):
             return tf.reshape(net, [batch_size, -1, feature_size])
 
     def test_net_out(self, batch_x):
+        charset = read_charset("resource/new_dic2.txt")
+        charset_mapper = CharsetMapper(charset)
+
         with tf.Session() as sess:
-            init_op = tf.global_variables_initializer()
+            init_op = (tf.global_variables_initializer(), tf.tables_initializer())
             sess.run(init_op)
             feed_dict = {self.x: batch_x}
             run_list = [self.seq_len,
@@ -233,8 +285,8 @@ class Vgg(object):
                         self.logits_2d,
                         self.logits,
                         self.logits_raw,
-                        self.y_pred]
-            _seq_len, _cnn_output, _pool_net, _cnn_net,_rnn_output, _outputs,_logits_2d, _logits,_logits_raw,_y_pred \
+                        self.y_pred, self.predicted_ids]
+            _seq_len, _cnn_output, _pool_net, _cnn_net,_rnn_output, _outputs,_logits_2d, _logits,_logits_raw,_y_pred,_predicted_ids \
                 = sess.run(run_list, feed_dict=feed_dict)
             print("seq_len: ", _seq_len)
             print("cnn_output: ", _cnn_output.shape)
@@ -245,18 +297,37 @@ class Vgg(object):
             print("logits_2d: ", _logits_2d.shape)
             print("logits: ", _logits.shape)
             print("logits_raw: ", _logits_raw.shape)
+            print("_predicted_ids_last: ", _predicted_ids[-1])
+            print("_predicted_text: ", sess.run(charset_mapper.get_text(_predicted_ids[:4,:])))
+            # print("_predicted_text: ", sess.run(charset_mapper.get_text(_predicted_ids)))
             print("y_pred: ", _y_pred.shape)
 
     def add_net_collection(self, net):
         tf.add_to_collection(self.collection_name, net)
 
-    def summary(self):
+    def summary(self, ids=None, charset=None):
+        def sname(label):
+            prefix = 'train' if self.is_train else 'eval'
+            return '%s/%s' % (prefix, label)
+
         tf.summary.image('input', self.x, 5)
         tf.summary.scalar('ctc_loss', self.loss_op)
         tf.summary.scalar('regularization_loss', self.regularization_loss)
         tf.summary.scalar('total_loss', self.total_loss)
 
         tf.summary.scalar('accuracy', self.accuracy)
+
+        if ids is not None and charset is not None:
+            max_outputs = 4
+            charset_mapper = CharsetMapper(charset)
+
+            pr_text = charset_mapper.get_text(self.predicted_ids[:max_outputs, :])
+            tf.summary.text(sname('text/pr'), pr_text)
+
+            #de_ids = decode_sparse_tensor(ids)
+            de_ids = tf.sparse_to_dense(ids._indices, ids._dense_shape, ids._values)
+            gt_text = charset_mapper.get_text(de_ids[:max_outputs,:])
+            tf.summary.text(sname('text/gt'), gt_text)
 
         for variable in slim.get_model_variables():
             tf.summary.histogram(variable.op.name, variable)
@@ -281,9 +352,18 @@ class Vgg(object):
         return self
 
     def test_loss(self, dataset, labels, labels_src):
+        print("-------------")
+        ids_batch = tf.SparseTensor(labels[0], labels[1], labels[2])
+        print(ids_batch)
+        de_ids = tf.sparse_to_dense(ids_batch._indices, ids_batch._dense_shape, ids_batch._values)
+
+        charset = read_charset("resource/new_dic2.txt")
+        charset_mapper = CharsetMapper(charset)
+
+        print("-------------")
         with tf.Session() as sess:
             # 初始化变量
-            init_op = tf.global_variables_initializer()
+            init_op = (tf.global_variables_initializer(), tf.tables_initializer())
             sess.run(init_op)
             feed_dict = {self.x: dataset, self.y: labels}
             print("loss: ", sess.run(self.loss, feed_dict=feed_dict))
@@ -291,14 +371,21 @@ class Vgg(object):
             print("loss_op: ", sess.run(self.loss_op, feed_dict=feed_dict))
             print("total_loss: ", sess.run(self.total_loss, feed_dict=feed_dict))
             print("accuracy: ", sess.run(self.accuracy, feed_dict=feed_dict))
+            print("de_ids_last: ", sess.run(de_ids)[-1])
+            print("de_ids_str: ", sess.run(charset_mapper.get_text(de_ids[:4,:])))
+            print("labels_src: labels_src")
+
             #print("acc: ", sess.run(self.acc, feed_dict={x: dataset, y: labels}))
 
 
     def print_network(self):
         print_net_line()
+        print_net(self.x)
+        print_net_line()
         for net in (tf.get_collection(self.collection_name)):
             print_net(net)
         print_net_line()
+
 
 if __name__ == '__main__':
 
@@ -317,7 +404,7 @@ if __name__ == '__main__':
     x = tf.placeholder(tf.float32, shape=[None, None, None, 1], name="X")
     y = tf.sparse_placeholder(tf.int32, name='Y')
 
-    vgg = Vgg().build(x, y, num_classes, True)
+    vgg = Vgg().build(x, y, num_classes)
 
 
 
@@ -387,7 +474,7 @@ if __name__ == '__main__':
     batch_x = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
     vgg.test_net_out(batch_x)
 
-    vgg.print_network()
+    # vgg.print_network()
 
     dataset, labels, labels_src = next_batch(8)
     vgg.test_loss(dataset, labels, labels_src)

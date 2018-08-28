@@ -199,6 +199,22 @@ def parse_arguments():
         default=28
     )
     parser.add_argument(
+        "-mifs",
+        "--min_font_size",
+        type=int,
+        nargs="?",
+        help=" image min font size",
+        default=20
+    )
+    parser.add_argument(
+        "-mxfs",
+        "--max_font_size",
+        type=int,
+        nargs="?",
+        help=" image max font size",
+        default=30
+    )
+    parser.add_argument(
         "-aug",
         "--image_aug",
         action="store_true",
@@ -239,6 +255,8 @@ if __name__ == '__main__':
     count = args.count
     extension = args.extension
     font_dir = args.font_dir
+    max_font_size = args.max_font_size
+    min_font_size = args.min_font_size
 
 
     config = Config(gb2312=True)
@@ -248,7 +266,9 @@ if __name__ == '__main__':
                        min_size=min_length,
                        max_size=max_length,
                        fonts=font_dir,
-                       font_size=font_size)
+                       font_size=font_size,
+                       max_font=max_font_size, min_font=min_font_size
+                       )
     print(gen_img.fonts)
 
     if args.use_wikipedia:

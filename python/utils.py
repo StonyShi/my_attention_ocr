@@ -17,7 +17,7 @@
 
 import tensorflow as tf
 from tensorflow.contrib import slim
-
+import re, logging
 
 def logits_to_log_prob(logits):
   """Computes log probabilities using numerically stable trick.
@@ -80,3 +80,91 @@ def variables_to_restore(scope=None, strip_scope=False):
     return variable_map
   else:
     return {v.op.name: v for v in slim.get_variables_to_restore()}
+
+
+
+def reverse_dict(m_dict):
+    return dict(zip(m_dict.values(), m_dict.keys()))
+
+def read_dict(filename, null_character=u'\u2591'):
+    pattern = re.compile(r'(\d+)\t(.+)')
+    charset = {}
+    with tf.gfile.GFile(filename) as f:
+        for i, line in enumerate(f):
+            m = pattern.match(line)
+            if m is None:
+                charset[" "] = 0
+                logging.warning('incorrect charset file. line #%d: %s', i, line)
+                continue
+            code = int(m.group(1))
+            char = m.group(2)  # .decode('utf-8')
+            if char == '<nul>':
+                char = null_character
+            # charset[code] = char
+            charset[char] = code
+    return charset
+
+def decode_code(code):
+    if type(code) == bytes:
+        return code.decode("utf-8")
+    #str(code, encoding='utf-8')
+    return code
+
+def encode_code(code):
+    if type(code) == str:
+        return code.encode("utf-8")
+    #bytes(code, 'utf-8')
+    return code
+
+
+def read_charset(filename, null_character=u'\u2591'):
+    pattern = re.compile(r'(\d+)\t(.+)')
+    charset = {}
+    with tf.gfile.GFile(filename) as f:
+        for i, line in enumerate(f):
+            m = pattern.match(line)
+            if m is None:
+                #charset[0] = " "
+                logging.warning('incorrect charset file. line #%d: %s', i, line)
+                continue
+            code = int(m.group(1))
+            char = m.group(2)  # .decode('utf-8')
+            if char == '<nul>':
+                char = null_character
+            charset[code] = char
+    return charset
+
+def _dict_to_array(id_to_char, default_character):
+  num_char_classes = max(id_to_char.keys()) + 1
+  array = [default_character] * num_char_classes
+  for k, v in id_to_char.items():
+    array[k] = v
+  return array
+
+class CharsetMapper(object):
+  """A simple class to map tensor ids into strings.
+
+    It works only when the character set is 1:1 mapping between individual
+    characters and individual ids.
+
+    Make sure you call tf.tables_initializer().run() as part of the init op.
+    """
+
+  def __init__(self, charset, default_character='?'):
+    """Creates a lookup table.
+
+    Args:
+      charset: a dictionary with id-to-character mapping.
+    """
+    mapping_strings = tf.constant(_dict_to_array(charset, default_character))
+    self.table = tf.contrib.lookup.index_to_string_table_from_tensor(
+      mapping=mapping_strings, default_value=default_character)
+
+  def get_text(self, ids):
+    """Returns a string corresponding to a sequence of character ids.
+
+        Args:
+          ids: a tensor with shape [batch_size, max_sequence_length]
+        """
+    return tf.reduce_join(
+      self.table.lookup(tf.to_int64(ids)), reduction_indices=1)
