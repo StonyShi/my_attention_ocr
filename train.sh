@@ -74,7 +74,9 @@ python train.py --checkpoint=./model.ckpt-118564 --dataset_name=my_data > output
 
 #python eval.py --dataset_name=my_data --split_name=test
 
-#python eval.py --dataset_name=my_data --split_name=validation --eval_log_dir=valid_logs
+#python eval.py --dataset_name=my_data --split_name=validation --eval_log_dir=eval_logs/valid
+#python eval.py --dataset_name=my_data --split_name=test --eval_log_dir=eval_logs/test
+#python eval.py --dataset_name=my_data --split_name=train --eval_log_dir=eval_logs/train
 
 
 #tar -zcvf my_attention_ocr.tar.gz --exclude=**/venv --exclude=/venv --exclude=**/**/inception_v3** --exclude=.git --exclude=**/.git*  --exclude=.idea*  my_attention_ocr/

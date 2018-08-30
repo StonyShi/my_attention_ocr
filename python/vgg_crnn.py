@@ -74,14 +74,14 @@ class Vgg(object):
                 net = slim.conv2d(net, 128, kernel_size=[3, 3], scope="conv2")
                 net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool2')
                 net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3')
-                net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool3')
+                net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool3')
                 net = slim.conv2d(net, 512, kernel_size=[3, 3], scope="conv4")
                 net = slim.batch_norm(net, is_training=is_train, activation_fn=None, scope="conv4_batch")
                 self.add_net_collection(net)
                 net = slim.conv2d(net, 512, kernel_size=[3, 3], scope="conv5")
                 net = slim.batch_norm(net, is_training=is_train, activation_fn=None, scope="conv5_batch")
                 self.add_net_collection(net)
-                net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool4')
+                net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool4')
                 net = slim.conv2d(net, 512, kernel_size=[2, 2], stride=1, padding='VALID', scope="conv6")
 
         self.cnn_net = net
@@ -471,10 +471,12 @@ if __name__ == '__main__':
         return dataset, labels, labels_src
 
 
+    vgg.print_network()
+
     batch_x = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
     vgg.test_net_out(batch_x)
 
-    # vgg.print_network()
+
 
     dataset, labels, labels_src = next_batch(8)
     vgg.test_loss(dataset, labels, labels_src)

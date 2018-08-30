@@ -11,6 +11,12 @@ from multiprocessing import Pool
 import time
 import tqdm
 
+import inception_preprocessing
+from data_provider import preprocess_image
+
+from utils import preprocess_train
+
+
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('dict_text',
@@ -335,6 +341,11 @@ def parse_tfrecord_file():
 
     myfont = fm.FontProperties(fname="fonts/card-id.TTF")
 
+    #
+    # img = inception_preprocessing.distort_color(img, random.randrange(0, 4), fast_mode=False, clip=False)
+    # img = preprocess_image(img, augment=True, num_towers=4)
+
+    img = preprocess_train(img, augment=True)
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
@@ -372,14 +383,14 @@ def write_dict():
 #python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=1024 --output_dir=datasets/train
 if __name__ == '__main__':
     chinese_dict = read_dict(FLAGS.dict_text)
-    make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
+    # make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
 
 
     # write_dict()
     # words = open("resource/gb2312_list.txt", 'r').read()
     # print(words)
 
-    # parse_tfrecord_file()
+    parse_tfrecord_file()
     #
     # import datasets
 

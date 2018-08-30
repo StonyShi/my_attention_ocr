@@ -128,7 +128,7 @@ if __name__ == '__main__':
         net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool2')
 
         net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3')
-        net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool3')
+        net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool3')
         # [kernel_height, kernel_width],[stride_height, stride_width]
 
         net = slim.conv2d(net, 512, kernel_size=[3, 3], scope="conv4")
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         net = slim.batch_norm(net, is_training=is_train, activation_fn=None, scope="conv5_batch")
         add_net_collection(net)
 
-        net = slim.max_pool2d(net, [2, 2], stride=[2, 1], scope='pool4')
+        net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool4')
         # net = slim.dropout(net, keep_prob=keep_prob, is_training=is_train, scope="pool4/dropout")
 
         # [kernel_height, kernel_width],[stride_height, stride_width]

@@ -16,6 +16,7 @@
 """Functions to support building models for StreetView text transcription."""
 
 import tensorflow as tf
+import numpy as np
 from tensorflow.contrib import slim
 import re, logging
 
@@ -168,3 +169,63 @@ class CharsetMapper(object):
         """
     return tf.reduce_join(
       self.table.lookup(tf.to_int64(ids)), reduction_indices=1)
+
+
+def preprocess_train(image, augment=True, bbox=None):
+    with tf.variable_scope('PreprocessImage'):
+
+        # height = image.get_shape().dims[0].value
+        # width = image.get_shape().dims[1].value
+        #
+        # #没有标注框，关注全部
+        # if bbox is None:
+        #     bbox = tf.constant([0.0, 0.0, 1.0, 1.0], dtype=tf.float32, shape=[1, 1, 4])
+
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+
+        # bbox_begin, bbox_size, _ = tf.image.sample_distorted_bounding_box(tf.shape(image), bounding_boxes = bbox)
+        # distorted_image = tf.slice(image, bbox_begin, bbox_size)
+
+        # 将随机截取的图片调整为神经网络输入层的大小。
+        # distorted_image = tf.image.resize_images(distorted_image, [height, width], method=np.random.randint(4))
+        # distorted_image.set_shape([height, width, 3])
+        # distorted_image = tf.image.random_flip_left_right(distorted_image)
+
+        if augment:
+            image = augment_image(image)
+
+        image = tf.subtract(image, 0.5)
+        image = tf.multiply(image, 2.5)
+    return image
+
+def augment_image(image):
+    distorted_image = distort_color(image, np.random.randint(4))
+    distorted_image = tf.clip_by_value(distorted_image, -1.5, 1.5)
+    return  distorted_image
+
+def distort_color(image, color_ordering=0 ,scope=None):
+    with tf.name_scope(scope, 'distort_color', [image]):
+        if color_ordering == 0:
+            image = tf.image.random_brightness(image, max_delta=32. / 255.)
+            image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+            image = tf.image.random_hue(image, max_delta=0.2)
+            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+        elif color_ordering == 1:
+            image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+            image = tf.image.random_brightness(image, max_delta=32. / 255.)
+            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+            image = tf.image.random_hue(image, max_delta=0.2)
+        elif color_ordering == 2:
+            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+            image = tf.image.random_hue(image, max_delta=0.2)
+            image = tf.image.random_brightness(image, max_delta=32. / 255.)
+            image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+        elif color_ordering == 3:
+            image = tf.image.random_hue(image, max_delta=0.2)
+            image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
+            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+            image = tf.image.random_brightness(image, max_delta=32. / 255.)
+        else:
+            raise ValueError('color_ordering must be in [0, 3]')
+        # The random_* ops do not necessarily clamp.
+        return tf.clip_by_value(image, 0.0, 1.0)

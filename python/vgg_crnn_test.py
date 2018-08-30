@@ -37,70 +37,66 @@ from utils import read_charset, CharsetMapper, decode_code, encode_code
 
 if __name__ == '__main__':
 
-    dataset_name_files = "%s*" % os.path.join("datasets/vgg_train", "train")
+    collection_name = 'my_end_points'
+    x = tf.placeholder(dtype=tf.float32, shape=(None, 32, None, 1), name="X")
+    is_train = True
+    def add_net_collection(net):
+        tf.add_to_collection(collection_name, net)
 
-    # outs = get_dataset()
-    print("-------------------------")
-    print(">>> outs: ")
-    print(dataset_name_files)
-    # print(outs)
-    print("-------------------------")
-    files = tf.train.match_filenames_once(dataset_name_files)
-    filename_queue = tf.train.string_input_producer(files)
 
-    reader = tf.TFRecordReader()
-    _, serialized_example = reader.read(filename_queue)
-    features = tf.parse_single_example(serialized_example, features={
-        "image": tf.FixedLenFeature([], tf.string),
-        'text': tf.FixedLenFeature([], tf.string),
-        'width': tf.FixedLenFeature([], tf.int64),
-        'height': tf.FixedLenFeature([], tf.int64),
-        'channels': tf.FixedLenFeature([], tf.int64),
-        'char_ids': tf.VarLenFeature(tf.int64)
-    })
+    norm_params = {
+        'is_training': is_train,
+        'decay': 0.997,
+        'epsilon': 1e-05,
+        'scale': True
+    }
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                        padding='SAME',
+                        outputs_collections=collection_name,
+                        activation_fn=tf.nn.relu,
+                        weights_regularizer=slim.l2_regularizer(0.0001)), \
+         slim.arg_scope([slim.max_pool2d, slim.dropout, slim.flatten],
+                        outputs_collections=collection_name), \
+         slim.arg_scope([slim.batch_norm],
+                        decay=0.997, epsilon=1e-5, scale=True, is_training=is_train):
 
-    # 设定的resize后的image的大小
-    split_results = '32,100'.split(',')
-    define_height = int(split_results[0].strip())
-    define_width = int(split_results[1].strip())
 
-    width, height, channels = features["width"], features["height"], features["channels"]
-    img = tf.decode_raw(features["image"], tf.uint8)
+        # (N, 16, 50, 64)
+        net = slim.conv2d(x, 64, kernel_size=[3, 3], scope="conv1")
+        net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool1')
 
-    char_ids = tf.cast(features['char_ids'], tf.int32)
-    img = tf.reshape(img, (define_height, define_width, 3))
-    # img.set_shape([height, width, channels])
+        #(8, 8, 25, 128)
+        net = slim.conv2d(net, 128, kernel_size=[3, 3], scope="conv2")
+        net = slim.max_pool2d(net, [2, 2], stride=2, scope='pool2')
 
-    text = tf.cast(features['text'], tf.string)
+        #(8, 4, 25, 256)
+        net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3], scope='conv3')
+        net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool3')
+        ## [kernel_height, kernel_width], [stride_height, stride_width]
 
-    myfont = fm.FontProperties(fname="fonts/card-id.TTF")
-    # img, text, char_ids = read_tfrecord("datasets/training.tfrecords", 1, True)
-    img = preprocess_image(img, augment=True, num_towers=4)
-    # img = inception_preprocessing.distort_color(img, random.randrange(0, 4), fast_mode=False, clip=False)
-    img = tf.image.rgb_to_grayscale(img)
-    img_batch, text_batch, ids_batch = tf.train.shuffle_batch([img, text, char_ids],
-                                                              batch_size=8,
-                                                              num_threads=8,
-                                                              capacity=3000,
-                                                              min_after_dequeue=1000)
+        #(8, 2, 25, 512)
+        with slim.arg_scope([slim.conv2d], normalizer_fn=slim.batch_norm, normalizer_params=norm_params):
+            net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3], scope='conv4')
+            net = slim.max_pool2d(net, [2, 1], stride=[2, 1], scope='pool4')
 
+        #(8, 1, 24, 512)
+        net = slim.conv2d(net, 512, kernel_size=[2, 2], stride=1, padding='VALID', scope="conv5")
+
+
+
+    print_net_line()
+    for net in (tf.get_collection(collection_name)):
+        print_net(net)
+    print_net_line()
+
+    dataset = np.arange(32 * 100 * 8).reshape((8, 32, 100, 1))
     with tf.Session() as sess:
+        # 初始化变量
+        init_op = tf.global_variables_initializer()
+        sess.run(init_op)
 
-        init = (tf.global_variables_initializer(),
-                tf.local_variables_initializer())
-        sess.run(init)
-        print("--------------------------")
+        feed_dict = {x: dataset}
+        print(sess.run(net, feed_dict=feed_dict).shape)
 
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
 
-        try:
-            imgs, texts, ids = sess.run([img_batch, text_batch, ids_batch])
-
-            print(imgs.shape)
-        except Exception as e:
-            coord.request_stop(e)
-        finally:
-            coord.request_stop()
-        coord.join(threads)
 

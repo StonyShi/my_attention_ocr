@@ -15,6 +15,8 @@ from Config import decode_sparse_tensor, sparse_tuple_from_label
 import inception_preprocessing
 from data_provider import preprocess_image
 
+from utils import preprocess_train
+
 
 from utils import read_dict, reverse_dict, read_charset, CharsetMapper, decode_code, encode_code
 
@@ -284,12 +286,15 @@ def parse_tfrecord_file():
 
     myfont = fm.FontProperties(fname="fonts/card-id.TTF")
     # img, text, char_ids = read_tfrecord("datasets/training.tfrecords", 1, True)
-    img = preprocess_image(img, augment=True, num_towers=4)
+    # img = preprocess_image(img, augment=True, num_towers=4)
+
+    img = preprocess_train(img, augment=True)
+
     # img = inception_preprocessing.distort_color(img, random.randrange(0, 4), fast_mode=False, clip=False)
     img = tf.image.rgb_to_grayscale(img)
     img_batch, text_batch, ids_batch = tf.train.shuffle_batch([img, text, char_ids],
                                                               batch_size=8,
-                                                              num_threads=8,
+                                                              num_threads=1,
                                                               capacity=3000,
                                                               min_after_dequeue=1000)
     with tf.Session() as sess:
@@ -357,7 +362,7 @@ if __name__ == '__main__':
     # words = open("resource/gb2312_list.txt", 'r').read()
     # print(words)
 
-    # parse_tfrecord_file()
+    parse_tfrecord_file()
 
 
 

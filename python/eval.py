@@ -73,6 +73,7 @@ def main(_):
       num_evals=FLAGS.num_batches,
       eval_interval_secs=FLAGS.eval_interval_secs,
       max_number_of_evaluations=FLAGS.number_of_steps,
+      timeout=3000,
       session_config=session_config)
 
 

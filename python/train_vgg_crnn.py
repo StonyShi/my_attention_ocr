@@ -1,5 +1,6 @@
 import collections
 import logging,re,os
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import slim
 from tensorflow import app
@@ -9,7 +10,7 @@ from tensorflow.contrib.tfprof import model_analyzer
 import data_provider
 import common_flags
 
-from utils import read_charset
+from utils import read_charset, preprocess_train
 import inception_preprocessing
 from data_provider import preprocess_image
 
@@ -127,6 +128,7 @@ def read_dict(filename, null_character=u'\u2591'):
             charset[char] = code
     return charset
 
+
 def main(_):
     prepare_training_dir()
 
@@ -174,11 +176,14 @@ def main(_):
         # img, text, char_ids = read_tfrecord("datasets/training.tfrecords", 1, True)
         # img = inception_preprocessing.distort_color(img, random.randrange(0, 4), fast_mode=False, clip=False)
 
-        image = preprocess_image(image_orig, augment=True, num_towers=4)
+        # image = preprocess_image(image_orig, augment=True, num_towers=4)
+
+        image = preprocess_train(image_orig, augment=True)
+
         image = tf.image.rgb_to_grayscale(image)
 
         img_batch, text_batch, ids_batch = tf.train.shuffle_batch([image, text, char_ids],
-                                                                  batch_size=8,
+                                                                  batch_size=FLAGS.batch_size,
                                                                   num_threads=8,
                                                                   capacity=3000,
                                                                   min_after_dequeue=1000)
