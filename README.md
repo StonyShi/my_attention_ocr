@@ -54,6 +54,8 @@ python gen_record.py --dataset_name=train --dataset_dir=out --dataset_nums=10000
 6. Inception下载地址:
 
 ```
+wget http://download.tensorflow.org/models/inception_resnet_v2_2016_08_30.tar.gz
+wget http://download.tensorflow.org/models/inception_v4_2016_09_09.tar.gz
 wget http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz
 tar xf inception_v3_2016_08_28.tar.gz
 mv inception_v3.ckpt resource/inception_v3.ckpt

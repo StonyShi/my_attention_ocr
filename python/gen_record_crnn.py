@@ -17,8 +17,10 @@ from data_provider import preprocess_image
 
 from utils import preprocess_train
 
+from preprocessing import vgg_preprocessing
 
-from utils import read_dict, reverse_dict, read_charset, CharsetMapper, decode_code, encode_code
+
+from utils import read_dict, reverse_dict, read_charset, CharsetMapper, decode_code, encode_code, is_valid_char
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -78,11 +80,6 @@ def encode_utf8_string(text, length, dic, null_char_id=133):
     return char_ids_padded, char_ids_unpaded
 
 
-def is_valid_char(name, words):
-    for c in name:
-        if c not in words:
-            return True
-    return False
 
 
 def get_image_files2(image_dir, check=False):
@@ -290,6 +287,8 @@ def parse_tfrecord_file():
 
     img = preprocess_train(img, augment=True)
 
+    # img = vgg_preprocessing.preprocess_image(img, define_height, define_width, False)
+
     # img = inception_preprocessing.distort_color(img, random.randrange(0, 4), fast_mode=False, clip=False)
     img = tf.image.rgb_to_grayscale(img)
     img_batch, text_batch, ids_batch = tf.train.shuffle_batch([img, text, char_ids],
@@ -356,7 +355,7 @@ if __name__ == '__main__':
     chinese_dict_ids = reverse_dict(chinese_dict)
     # print([chinese_dict[code] for code in "你好呀!"])
     # print([chinese_dict_ids[code] for code in [chinese_dict[code] for code in "你好呀!"]])
-    make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
+    # make_tfrecord2(chinese_dict, FLAGS.dataset_name, FLAGS.dataset_nums)
 
     # write_dict()
     # words = open("resource/gb2312_list.txt", 'r').read()

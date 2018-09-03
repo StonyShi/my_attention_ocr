@@ -82,12 +82,22 @@ def variables_to_restore(scope=None, strip_scope=False):
   else:
     return {v.op.name: v for v in slim.get_variables_to_restore()}
 
+def is_valid_char(name, words):
+    for c in name:
+        if c not in words:
+            return True
+    return False
 
 
 def reverse_dict(m_dict):
     return dict(zip(m_dict.values(), m_dict.keys()))
 
+
 def read_dict(filename, null_character=u'\u2591'):
+    """Returns {char: code}
+       Args:
+         filename:  id char  file
+    """
     pattern = re.compile(r'(\d+)\t(.+)')
     charset = {}
     with tf.gfile.GFile(filename) as f:
@@ -101,7 +111,6 @@ def read_dict(filename, null_character=u'\u2591'):
             char = m.group(2)  # .decode('utf-8')
             if char == '<nul>':
                 char = null_character
-            # charset[code] = char
             charset[char] = code
     return charset
 
@@ -119,6 +128,10 @@ def encode_code(code):
 
 
 def read_charset(filename, null_character=u'\u2591'):
+    """Returns {code: char}
+    Args:
+      filename:  id char  file
+    """
     pattern = re.compile(r'(\d+)\t(.+)')
     charset = {}
     with tf.gfile.GFile(filename) as f:

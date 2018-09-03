@@ -16,6 +16,7 @@ from data_provider import preprocess_image
 
 from utils import preprocess_train
 
+from utils import read_dict, reverse_dict, read_charset, CharsetMapper, decode_code, encode_code, is_valid_char
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -53,43 +54,6 @@ tf.app.flags.DEFINE_string('height_and_width', '32, 320', 'input size of each im
 tf.app.flags.DEFINE_integer('length_of_text', 37, 'length of text when this text is padded')
 tf.app.flags.DEFINE_integer('null_char_id', 133, 'the index of null char is used to padded text')
 
-def decode_code(code):
-  if type(code) == bytes:
-    return code.decode("utf-8")
-  return str(code, encoding='utf-8')
-
-# def get_word_id(dict, word):
-#char id
-def read_chinese_dict():
-    chinese_dict = {}
-    with codecs.open(FLAGS.dict_text, encoding='utf-8') as dict_file:
-        for line in dict_file:
-            (key, value) = line.strip().split('\t')
-            if int(key) == 0:
-                chinese_dict[" "] = int(key)
-            else:
-                chinese_dict[value] = int(key)
-    print('chinese dict is as follows:')
-    #json.dumps(chinese_dict, ensure_ascii=False, encoding='UTF-8')
-    return chinese_dict
-
-def read_dict(filename, null_character=u'\u2591'):
-    pattern = re.compile(r'(\d+)\t(.+)')
-    charset = {}
-    with tf.gfile.GFile(filename) as f:
-        for i, line in enumerate(f):
-            m = pattern.match(line)
-            if m is None:
-                charset[" "] = 0
-                logging.warning('incorrect charset file. line #%d: %s', i, line)
-                continue
-            code = int(m.group(1))
-            char = m.group(2)  # .decode('utf-8')
-            if char == '<nul>':
-                char = null_character
-            #charset[code] = char
-            charset[char] = code
-    return charset
 
 
 def _int64_feature(value):
@@ -111,11 +75,6 @@ def encode_utf8_string(text, length, dic, null_char_id=133):
         char_ids_unpaded[idx] = hash_id
     return char_ids_padded, char_ids_unpaded
 
-def is_valid_char(name, words):
-    for c in name:
-        if c not in words:
-            return True
-    return False
 
 
 def get_image_files(image_dir,check=False):

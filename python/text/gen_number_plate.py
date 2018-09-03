@@ -36,7 +36,7 @@ def AddSmudginess(img, Smu):
     img = cv2.bitwise_not(img)
     return img
 
-def rot(img,angel,shape,max_angel):
+def rot(img, angel, shape, max_angel):
     """ 使图像轻微的畸变
 
         img 输入图像
@@ -164,14 +164,14 @@ class GenPlate:
         fg = self.draw(text) #.decode(encoding="utf-8")
         fg = cv2.bitwise_not(fg)
         com = cv2.bitwise_or(fg, self.bg)
-        com = rot(com,r(60)-30,com.shape,30)
-        com = rotRandrom(com,10,(com.shape[1],com.shape[0]))
+        com = rot(com, r(60)-30, com.shape, 30)  # 矩形-->平行四边形
+        com = rotRandrom(com,10,(com.shape[1],com.shape[0])) ## 旋转
         #com = AddSmudginess(com,self.smu)
 
-        com = tfactor(com)
-        com = random_envirment(com,self.noplates_path)
-        com = AddGauss(com, 1+r(4))
-        com = addNoise(com)
+        com = tfactor(com) #灰度
+        com = random_envirment(com,self.noplates_path) #加背景
+        com = AddGauss(com, 1+r(4)) #高斯
+        com = addNoise(com) #噪点
         return com
     def random_str(self, size=10):
         letter = []
@@ -228,10 +228,13 @@ class GenPlate:
 
 
 if __name__ == '__main__':
-    G = GenPlate("./resource/plate/platech.ttf", './resource/plate/platechar.ttf',
-                 "./resource/plate_bg",
-                 bd_img="./resource/plate_fg/template.bmp",
-                 num_img="./resource/plate_fg/smu2.jpg")
+    G = GenPlate("../resource/plate/platech.ttf", '../resource/plate/platechar.ttf',
+                 "../resource/plate_bg",
+                 bd_img="../resource/plate_fg/template.bmp",
+                 num_img="../resource/plate_fg/smu2.jpg")
 
-    G.gen_batch(10, "./images/plate_test", (320, 32))
+    # G.gen_batch(10, "./images/plate_test", (320, 32))
+    # os.mkdir("plate_test")
+    # G.gen_one(1, "./plate_test", (320, 32))
+    G.gen_one(2, "./plate_test", ((272,72)))
 
